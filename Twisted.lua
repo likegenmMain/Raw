@@ -1,10 +1,11 @@
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qanuir/orion-ui/refs/heads/main/source.lua"))()
 
 local Window = OrionLib:MakeWindow({
-    Name = "Fly",
+    Name = "Twisted Script",
     HidePremium = false,
     SaveConfig = true,
-    ConfigFolder = "OrionFly"
+    ConfigFolder = "OrionFly",
+    IntroText = "By Likegenm",
 })
 
 local Tab = Window:MakeTab({
@@ -19,9 +20,10 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Lighting = game:GetService("Lighting")
 
 local flyEnabled = false
-local flySpeed = 50
+local flySpeed = 200
 local flyTween = nil
 local flyConnection = nil
 
@@ -71,6 +73,34 @@ Tab:AddSlider({
     ValueName = "Speed",
     Callback = function(v)
         flySpeed = v
+    end
+})
+
+Tab:AddToggle({
+    Name = "Fullbright",
+    Default = false,
+    Callback = function(v)
+        if v then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 3
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 999999
+            Lighting.FogColor = Color3.fromRGB(255, 255, 255)
+            Lighting.GlobalShadows = false
+            Lighting.Outlines = false
+            Lighting.ExposureCompensation = 1
+        else
+            Lighting.Ambient = Color3.fromRGB(0, 0, 0)
+            Lighting.OutdoorAmbient = Color3.fromRGB(105, 105, 105)
+            Lighting.Brightness = 1
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.FogColor = Color3.fromRGB(192, 192, 192)
+            Lighting.GlobalShadows = true
+            Lighting.Outlines = true
+            Lighting.ExposureCompensation = 0
+        end
     end
 })
 

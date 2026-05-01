@@ -63,9 +63,9 @@ Tab:AddToggle({
 
 Tab:AddSlider({
     Name = "Fly Speed",
-    Min = 10,
-    Max = 200,
-    Default = 50,
+    Min = 100,
+    Max = 1000,
+    Default = 200,
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
     ValueName = "Speed",

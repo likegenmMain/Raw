@@ -177,7 +177,6 @@ MainTab:AddToggle({
                     primaryPart.Velocity = dir.Unit * vehicleFlySpeed
                 end
                 
-                -- Всегда поворачиваем транспорт в сторону камеры (только горизонтально)
                 local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
                 if cameraLook.Magnitude > 0 then
                     primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
@@ -238,7 +237,6 @@ MainTab:AddToggle({
                     primaryPart.Velocity = Vector3.new(mv.X * vehicleTurboSpeed, 0, mv.Z * vehicleTurboSpeed)
                 end
                 
-                -- Всегда поворачиваем транспорт в сторону камеры
                 local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
                 if cameraLook.Magnitude > 0 then
                     primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
@@ -263,6 +261,69 @@ MainTab:AddSlider({
     ValueName = "Speed",
     Callback = function(v)
         vehicleTurboSpeed = v
+    end
+})
+
+-- Probes
+local function getProbes()
+    local probes = {}
+    local probesFolder = workspace:FindFirstChild("player_related")
+    if probesFolder then
+        local probesContainer = probesFolder:FindFirstChild("probes")
+        if probesContainer then
+            local userId = LocalPlayer.UserId
+            for _, probe in ipairs(probesContainer:GetChildren()) do
+                if probe.Name == tostring(userId) then
+                    table.insert(probes, probe.Name)
+                end
+            end
+        end
+    end
+    return probes
+end
+
+local function teleportToProbe(probeName)
+    local probesFolder = workspace:FindFirstChild("player_related")
+    if probesFolder then
+        local probesContainer = probesFolder:FindFirstChild("probes")
+        if probesContainer then
+            local probe = probesContainer:FindFirstChild(probeName)
+            if probe then
+                local myChar = LocalPlayer.Character
+                if myChar then
+                    local hrp = myChar:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        -- Используем WorldPivot или Position
+                        local targetPos = probe:GetPivot().Position
+                        hrp.CFrame = CFrame.new(targetPos)
+                    end
+                end
+            end
+        end
+    end
+end
+
+local probesDropdown = MainTab:AddDropdown({
+    Name = "Probes",
+    Default = "",
+    Options = getProbes(),
+    Callback = function(v) end
+})
+
+MainTab:AddButton({
+    Name = "Teleport to Probe",
+    Callback = function()
+        local selectedProbe = probesDropdown.Value
+        if selectedProbe and selectedProbe ~= "" then
+            teleportToProbe(selectedProbe)
+        end
+    end
+})
+
+MainTab:AddButton({
+    Name = "Refresh Probes",
+    Callback = function()
+        probesDropdown:Refresh(getProbes(), true)
     end
 })
 
@@ -443,7 +504,6 @@ local function startVehicleTeleport(targetPos)
             vehicleTeleportConnection:Disconnect()
             vehicleTeleportConnection = nil
         else
-            -- Поворачиваем транспорт в сторону цели
             local lookDir = Vector3.new(direction.X, 0, direction.Z)
             if lookDir.Magnitude > 0 then
                 part.CFrame = CFrame.new(part.Position, part.Position + lookDir.Unit)

@@ -286,7 +286,7 @@ task.spawn(function()
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChild("Humanoid")
         
-        if hum and hum.Health <= 0 then
+        if hum and hum.Health <= hum.MaxHealth then
             hum.Health = hum.MaxHealth
         end
         

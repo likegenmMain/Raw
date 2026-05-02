@@ -269,31 +269,5 @@ TeleportTab:AddButton({
 
 OrionLib:Init()
 
-workspace.FallenPartsDestroyHeight = 0/0
 
-local p = Instance.new("Part")
-p.Name = "VoidFloor"
-p.Parent = workspace
-p.Size = Vector3.new(2048, 20, 2048)
-p.Position = Vector3.new(0, -5000, 0)
-p.Anchored = true
-p.Color = Color3.new(0, 0, 0)
-p.Transparency = 0.7
-p.CanCollide = true
-
-task.spawn(function()
-    while true do
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChild("Humanoid")
-        
-        if hum and hum.Health <= hum.MaxHealth then
-            hum.Health = hum.MaxHealth
-        end
-        
-        if char and char.PrimaryPart then
-            p.Position = Vector3.new(char.PrimaryPart.Position.X, -5000, char.PrimaryPart.Position.Z)
-        end
-        
-        task.wait(0.01)
-    end
 end)

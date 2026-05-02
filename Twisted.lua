@@ -145,6 +145,60 @@ MainTab:AddSlider({
     end
 })
 
+-- Vehicle Fly
+local vehicleFlyEnabled = false
+local vehicleFlySpeed = 200
+local vehicleFlyConnection = nil
+
+MainTab:AddToggle({
+    Name = "Vehicle Fly",
+    Default = false,
+    Callback = function(v)
+        vehicleFlyEnabled = v
+        if vehicleFlyEnabled then
+            vehicleFlyConnection = RunService.Heartbeat:Connect(function()
+                if not vehicleFlyEnabled then return end
+                
+                local char = LocalPlayer.Character
+                if not char then return end
+                
+                local primaryPart = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
+                if not primaryPart then return end
+                
+                local dir = Vector3.zero
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir += Vector3.new(0, -1, 0) end
+                
+                if dir.Magnitude > 0 then
+                    primaryPart.Velocity = dir.Unit * vehicleFlySpeed
+                end
+            end)
+        else
+            if vehicleFlyConnection then
+                vehicleFlyConnection:Disconnect()
+                vehicleFlyConnection = nil
+            end
+        end
+    end
+})
+
+MainTab:AddSlider({
+    Name = "Vehicle Fly Speed",
+    Min = 100,
+    Max = 1000,
+    Default = 200,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(v)
+        vehicleFlySpeed = v
+    end
+})
+
 VisualTab:AddToggle({
     Name = "Fullbright",
     Default = false,
@@ -264,6 +318,110 @@ TeleportTab:AddButton({
     Name = "Refresh Players",
     Callback = function()
         teleportPlayerDropdown:Refresh(getPlayerNames(), true)
+    end
+})
+
+-- Vehicle Teleport
+local vehicleTeleportSpeed = 500
+local vehicleTeleportConnection = nil
+local vehicleTeleportActive = false
+local vehicleTeleportTarget = nil
+
+TeleportTab:AddSlider({
+    Name = "Vehicle TP Speed",
+    Min = 100,
+    Max = 5000,
+    Default = 500,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 10,
+    ValueName = "Speed",
+    Callback = function(v)
+        vehicleTeleportSpeed = v
+    end
+})
+
+local function startVehicleTeleport(targetPos)
+    if vehicleTeleportConnection then
+        vehicleTeleportConnection:Disconnect()
+    end
+    
+    local myChar = LocalPlayer.Character
+    if not myChar then return end
+    
+    local primaryPart = myChar.PrimaryPart or myChar:FindFirstChild("HumanoidRootPart")
+    if not primaryPart then return end
+    
+    vehicleTeleportActive = true
+    vehicleTeleportTarget = targetPos
+    
+    vehicleTeleportConnection = RunService.Heartbeat:Connect(function()
+        if not vehicleTeleportActive then
+            vehicleTeleportConnection:Disconnect()
+            vehicleTeleportConnection = nil
+            return
+        end
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local part = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
+        if not part then return end
+        
+        local direction = (vehicleTeleportTarget - part.Position)
+        local distance = direction.Magnitude
+        
+        if distance < 10 then
+            -- Прибыли на место, останавливаем
+            part.Velocity = Vector3.zero
+            vehicleTeleportActive = false
+            vehicleTeleportConnection:Disconnect()
+            vehicleTeleportConnection = nil
+        else
+            -- Швыряем прямо к цели
+            part.Velocity = direction.Unit * vehicleTeleportSpeed
+        end
+    end)
+end
+
+TeleportTab:AddButton({
+    Name = "Vehicle Teleport to Player",
+    Callback = function()
+        local targetName = teleportPlayerDropdown.Value
+        if targetName and targetName ~= "" then
+            local target = Players:FindFirstChild(targetName)
+            if target and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    startVehicleTeleport(targetHrp.Position)
+                end
+            end
+        end
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Vehicle Teleport to Cursor",
+    Callback = function()
+        local mouse = LocalPlayer:GetMouse()
+        startVehicleTeleport(mouse.Hit.Position)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Stop Vehicle Teleport",
+    Callback = function()
+        vehicleTeleportActive = false
+        if vehicleTeleportConnection then
+            vehicleTeleportConnection:Disconnect()
+            vehicleTeleportConnection = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            local part = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
+            if part then
+                part.Velocity = Vector3.zero
+            end
+        end
     end
 })
 

@@ -176,6 +176,12 @@ MainTab:AddToggle({
                 if dir.Magnitude > 0 then
                     primaryPart.Velocity = dir.Unit * vehicleFlySpeed
                 end
+                
+                -- Всегда поворачиваем транспорт в сторону камеры (только горизонтально)
+                local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
+                if cameraLook.Magnitude > 0 then
+                    primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
+                end
             end)
         else
             if vehicleFlyConnection then
@@ -196,6 +202,67 @@ MainTab:AddSlider({
     ValueName = "Speed",
     Callback = function(v)
         vehicleFlySpeed = v
+    end
+})
+
+-- Vehicle Turbo
+local vehicleTurboEnabled = false
+local vehicleTurboSpeed = 100
+local vehicleTurboConnection = nil
+
+MainTab:AddToggle({
+    Name = "Vehicle Turbo",
+    Default = false,
+    Callback = function(v)
+        vehicleTurboEnabled = v
+        if vehicleTurboEnabled then
+            vehicleTurboConnection = RunService.Heartbeat:Connect(function()
+                if not vehicleTurboEnabled then return end
+                
+                local char = LocalPlayer.Character
+                if not char then return end
+                
+                local primaryPart = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
+                if not primaryPart then return end
+                
+                local lookVector = Camera.CFrame.LookVector
+                local rightVector = Camera.CFrame.RightVector
+                local mv = Vector3.zero
+                
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then mv += Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then mv -= Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then mv -= Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then mv += Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
+                
+                if mv.Magnitude > 0 then
+                    primaryPart.Velocity = Vector3.new(mv.X * vehicleTurboSpeed, 0, mv.Z * vehicleTurboSpeed)
+                end
+                
+                -- Всегда поворачиваем транспорт в сторону камеры
+                local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
+                if cameraLook.Magnitude > 0 then
+                    primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
+                end
+            end)
+        else
+            if vehicleTurboConnection then
+                vehicleTurboConnection:Disconnect()
+                vehicleTurboConnection = nil
+            end
+        end
+    end
+})
+
+MainTab:AddSlider({
+    Name = "Vehicle Turbo Speed",
+    Min = 50,
+    Max = 500,
+    Default = 100,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(v)
+        vehicleTurboSpeed = v
     end
 })
 
@@ -371,13 +438,17 @@ local function startVehicleTeleport(targetPos)
         local distance = direction.Magnitude
         
         if distance < 10 then
-            -- Прибыли на место, останавливаем
             part.Velocity = Vector3.zero
             vehicleTeleportActive = false
             vehicleTeleportConnection:Disconnect()
             vehicleTeleportConnection = nil
         else
-            -- Швыряем прямо к цели
+            -- Поворачиваем транспорт в сторону цели
+            local lookDir = Vector3.new(direction.X, 0, direction.Z)
+            if lookDir.Magnitude > 0 then
+                part.CFrame = CFrame.new(part.Position, part.Position + lookDir.Unit)
+            end
+            
             part.Velocity = direction.Unit * vehicleTeleportSpeed
         end
     end)

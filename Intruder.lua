@@ -68,15 +68,15 @@ local DM = PG and
           PG:FindFirstChild("Well")
 
 if lobby then 
-           loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/Scripts/refs/heads/main/Intruder(Lobby).lua"))() 
+           loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Raw/refs/heads/main/ILobby.lua"))() 
 end
 
 if home then 
-           loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/1/refs/heads/main/TheIntruderHome.lua"))() 
+           loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Raw/refs/heads/main/IHome.lua"))() 
 end
 
 if mall then 
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/1/refs/heads/main/TheIntruderMall.lua"))() 
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Raw/refs/heads/main/IMall.lua"))() 
 end
 
 if mine then

@@ -293,7 +293,6 @@ local function teleportToProbe(probeName)
                 if myChar then
                     local hrp = myChar:FindFirstChild("HumanoidRootPart")
                     if hrp then
-                        -- Используем WorldPivot или Position
                         local targetPos = probe:GetPivot().Position
                         hrp.CFrame = CFrame.new(targetPos)
                     end
@@ -415,6 +414,65 @@ local function getPlayerNames()
     return names
 end
 
+-- Helper function to get primary part (player or vehicle)
+local function getPrimaryPart()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    return char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
+end
+
+-- Instance Teleport через RunService
+local instanceTeleportEnabled = false
+local instanceTeleportSpeed = 5000
+local instanceTeleportConnection = nil
+local instanceTeleportTarget = nil
+
+local function startInstanceTeleport(targetPos)
+    if instanceTeleportConnection then
+        instanceTeleportConnection:Disconnect()
+    end
+    
+    instanceTeleportTarget = targetPos
+    
+    instanceTeleportConnection = RunService.Heartbeat:Connect(function()
+        if not instanceTeleportEnabled then
+            instanceTeleportConnection:Disconnect()
+            instanceTeleportConnection = nil
+            return
+        end
+        
+        local currentPart = getPrimaryPart()
+        if not currentPart then return end
+        
+        local direction = (instanceTeleportTarget - currentPart.Position)
+        local distance = direction.Magnitude
+        
+        if distance < 10 then
+            currentPart.Velocity = Vector3.zero
+            instanceTeleportEnabled = false
+            instanceTeleportConnection:Disconnect()
+            instanceTeleportConnection = nil
+        else
+            currentPart.Velocity = direction.Unit * instanceTeleportSpeed
+        end
+    end)
+end
+
+-- ==================== TELEPORTS TAB ====================
+
+-- Player Teleports Paragraph
+TeleportTab:AddParagraph("Player Teleports", "")
+
+local function getPlayerNames()
+    local names = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
+
 local teleportPlayerDropdown = TeleportTab:AddDropdown({
     Name = "Select Player",
     Default = "",
@@ -423,18 +481,17 @@ local teleportPlayerDropdown = TeleportTab:AddDropdown({
 })
 
 TeleportTab:AddButton({
-    Name = "Teleport",
+    Name = "Teleport to Player",
     Callback = function()
         local targetName = teleportPlayerDropdown.Value
         if targetName and targetName ~= "" then
             local target = Players:FindFirstChild(targetName)
             if target and target.Character then
                 local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                local myChar = LocalPlayer.Character
-                if targetHrp and myChar then
-                    local myHrp = myChar:FindFirstChild("HumanoidRootPart")
-                    if myHrp then
-                        myHrp.CFrame = targetHrp.CFrame
+                if targetHrp then
+                    local part = getPrimaryPart()
+                    if part then
+                        part.CFrame = targetHrp.CFrame
                     end
                 end
             end
@@ -449,7 +506,125 @@ TeleportTab:AddButton({
     end
 })
 
--- Vehicle Teleport
+-- Instance Teleport Paragraph
+TeleportTab:AddParagraph("Instance Teleport", "Works for player and vehicle")
+
+TeleportTab:AddToggle({
+    Name = "Instance Teleport",
+    Default = false,
+    Callback = function(v)
+        instanceTeleportEnabled = v
+        if not v and instanceTeleportConnection then
+            instanceTeleportConnection:Disconnect()
+            instanceTeleportConnection = nil
+            local part = getPrimaryPart()
+            if part then
+                part.Velocity = Vector3.zero
+            end
+        end
+    end
+})
+
+TeleportTab:AddSlider({
+    Name = "Instance TP Speed",
+    Min = 1000,
+    Max = 10000,
+    Default = 5000,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 100,
+    ValueName = "Speed",
+    Callback = function(v)
+        instanceTeleportSpeed = v
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Instance TP to Player",
+    Callback = function()
+        local targetName = teleportPlayerDropdown.Value
+        if targetName and targetName ~= "" then
+            local target = Players:FindFirstChild(targetName)
+            if target and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    instanceTeleportEnabled = true
+                    startInstanceTeleport(targetHrp.Position)
+                end
+            end
+        end
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Instance TP to Cursor",
+    Callback = function()
+        local mouse = LocalPlayer:GetMouse()
+        instanceTeleportEnabled = true
+        startInstanceTeleport(mouse.Hit.Position)
+    end
+})
+
+-- Cities Teleport Paragraph
+TeleportTab:AddParagraph("Cities Teleports", "")
+
+local cities = {
+    ["Hazelton"] = Vector3.new(3530.361083984375, 47.397972106933594, -12934.0654296875),
+    ["Prior Lake"] = Vector3.new(832.2999877929688, 22.198026657104492, 3563.01953125),
+    ["Starbuck"] = Vector3.new(483.1630859375, 56.198020935058594, 17157.279296875),
+    ["Hibbing"] = Vector3.new(-9458.9658203125, 22.177297592163086, 7043.642578125),
+    ["Wadena"] = Vector3.new(17727.73828125, 60.198020935058594, -15855.8994140625)
+}
+
+local cityNames = {}
+for name, _ in pairs(cities) do
+    table.insert(cityNames, name)
+end
+
+local citiesDropdown = TeleportTab:AddDropdown({
+    Name = "Select City",
+    Default = "",
+    Options = cityNames,
+    Callback = function(v) end
+})
+
+TeleportTab:AddButton({
+    Name = "Teleport to City",
+    Callback = function()
+        local cityName = citiesDropdown.Value
+        if cityName and cityName ~= "" and cities[cityName] then
+            local part = getPrimaryPart()
+            if part then
+                part.CFrame = CFrame.new(cities[cityName])
+            end
+        end
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Vehicle TP to City",
+    Callback = function()
+        local cityName = citiesDropdown.Value
+        if cityName and cityName ~= "" and cities[cityName] then
+            instanceTeleportEnabled = true
+            startInstanceTeleport(cities[cityName])
+        end
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Instance TP to City",
+    Callback = function()
+        local cityName = citiesDropdown.Value
+        if cityName and cityName ~= "" and cities[cityName] then
+            instanceTeleportEnabled = true
+            startInstanceTeleport(cities[cityName])
+        end
+    end
+})
+
+-- Vehicle Teleport Paragraph
+TeleportTab:AddParagraph("Vehicle Teleport", "")
+
 local vehicleTeleportSpeed = 500
 local vehicleTeleportConnection = nil
 local vehicleTeleportActive = false
@@ -473,11 +648,8 @@ local function startVehicleTeleport(targetPos)
         vehicleTeleportConnection:Disconnect()
     end
     
-    local myChar = LocalPlayer.Character
-    if not myChar then return end
-    
-    local primaryPart = myChar.PrimaryPart or myChar:FindFirstChild("HumanoidRootPart")
-    if not primaryPart then return end
+    local part = getPrimaryPart()
+    if not part then return end
     
     vehicleTeleportActive = true
     vehicleTeleportTarget = targetPos
@@ -489,33 +661,30 @@ local function startVehicleTeleport(targetPos)
             return
         end
         
-        local char = LocalPlayer.Character
-        if not char then return end
+        local currentPart = getPrimaryPart()
+        if not currentPart then return end
         
-        local part = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
-        if not part then return end
-        
-        local direction = (vehicleTeleportTarget - part.Position)
+        local direction = (vehicleTeleportTarget - currentPart.Position)
         local distance = direction.Magnitude
         
         if distance < 10 then
-            part.Velocity = Vector3.zero
+            currentPart.Velocity = Vector3.zero
             vehicleTeleportActive = false
             vehicleTeleportConnection:Disconnect()
             vehicleTeleportConnection = nil
         else
             local lookDir = Vector3.new(direction.X, 0, direction.Z)
             if lookDir.Magnitude > 0 then
-                part.CFrame = CFrame.new(part.Position, part.Position + lookDir.Unit)
+                currentPart.CFrame = CFrame.new(currentPart.Position, currentPart.Position + lookDir.Unit)
             end
             
-            part.Velocity = direction.Unit * vehicleTeleportSpeed
+            currentPart.Velocity = direction.Unit * vehicleTeleportSpeed
         end
     end)
 end
 
 TeleportTab:AddButton({
-    Name = "Vehicle Teleport to Player",
+    Name = "Vehicle TP to Player",
     Callback = function()
         local targetName = teleportPlayerDropdown.Value
         if targetName and targetName ~= "" then
@@ -531,10 +700,20 @@ TeleportTab:AddButton({
 })
 
 TeleportTab:AddButton({
-    Name = "Vehicle Teleport to Cursor",
+    Name = "Vehicle TP to Cursor",
     Callback = function()
         local mouse = LocalPlayer:GetMouse()
         startVehicleTeleport(mouse.Hit.Position)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "Vehicle TP to City",
+    Callback = function()
+        local cityName = citiesDropdown.Value
+        if cityName and cityName ~= "" and cities[cityName] then
+            startVehicleTeleport(cities[cityName])
+        end
     end
 })
 
@@ -546,12 +725,9 @@ TeleportTab:AddButton({
             vehicleTeleportConnection:Disconnect()
             vehicleTeleportConnection = nil
         end
-        local char = LocalPlayer.Character
-        if char then
-            local part = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
-            if part then
-                part.Velocity = Vector3.zero
-            end
+        local part = getPrimaryPart()
+        if part then
+            part.Velocity = Vector3.zero
         end
     end
 })

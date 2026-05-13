@@ -209,6 +209,32 @@ RightBox:AddButton({
     end
 })
 
+local executor = identifyexecutor and identifyexecutor() or getexecutorname and getexecutorname() or "Unknown"
+local executorColor = Color3.fromRGB(255, 255, 255)
+
+if executor:lower():find("wave") then
+    executorColor = Color3.fromRGB(0, 191, 255)
+elseif executor:lower():find("ronix") then
+    executorColor = Color3.fromRGB(255, 69, 0)
+elseif executor:lower():find("solara") then
+    executorColor = Color3.fromRGB(255, 215, 0)
+elseif executor:lower():find("fluxus") then
+    executorColor = Color3.fromRGB(0, 255, 0)
+elseif executor:lower():find("xeno") then
+    executorColor = Color3.fromRGB(255, 20, 147)
+elseif executor:lower():find("nihon") then
+    executorColor = Color3.fromRGB(138, 43, 226)
+elseif executor:lower():find("arceus") then
+    executorColor = Color3.fromRGB(255, 0, 0)
+elseif executor:lower():find("codex") then
+    executorColor = Color3.fromRGB(0, 255, 255)
+elseif executor:lower():find("delta") then
+    executorColor = Color3.fromRGB(255, 128, 0)
+end
+
+local ExecutorLabel = RightBox:AddLabel("Executor: " .. executor)
+ExecutorLabel.TextLabel.TextColor3 = executorColor
+
 local MainTab = Window:AddTab("Main", "zap")
 
 local MovementBox = MainTab:AddLeftGroupbox("Movement")
@@ -282,6 +308,25 @@ MovementBox:AddToggle("NoclipToggle", {
     Default = false,
     Callback = function(state)
         noclipEnabled = state
+    end
+})
+
+local HipBox = MainTab:AddRightGroupbox("Hip")
+
+HipBox:AddSlider("HipHeightSlider", {
+    Text = "Hip Height",
+    Default = 2,
+    Min = 2,
+    Max = 50,
+    Rounding = 1,
+    Callback = function(Value)
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.HipHeight = Value
+            end
+        end
     end
 })
 

@@ -94,32 +94,6 @@ end)
 end
 })
 
-local AutoTouchSection = Tab:AddSection({Name = "AutoTouch"})
-
-local autoTouchActive = false
-local autoTouchConnection = nil
-
-Tab:AddToggle({
-    Name = "AutoTroll(Blatant)",
-    Default = false,
-    Callback = function(Value)
-        autoTouchActive = Value
-        if autoTouchActive then
-            autoTouchConnection = game:GetService("RunService").RenderStepped:Connect(function()
-                pcall(function()
-                    firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, workspace.Gudock, 0)
-                    firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, workspace.Gudock, 1)
-                end)
-            end)
-        else
-            if autoTouchConnection then
-                autoTouchConnection:Disconnect()
-                autoTouchConnection = nil
-            end
-        end
-    end
-})
-
 local TPSection = Tab:AddSection({
     Name = "Teleports"
 })
@@ -404,6 +378,35 @@ for _, path in pairs(trollPaths) do
         end
     })
 end
+
+Tab:AddToggle({
+    Name = "AutoTroll",
+    Default = false,
+    Callback = function(Value)
+        autoTouchActive = Value
+        if autoTouchActive then
+            autoTouchConnection = game:GetService("RunService").RenderStepped:Connect(function()
+                pcall(function()
+                    firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, workspace.Gudock, 0)
+                    firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, workspace.Gudock, 1)
+                end)
+                for _, part in ipairs(game.workspace.TrollPart1:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        pcall(function()
+                            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, part, 0)
+                            firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, part, 1)
+                        end)
+                    end
+                end
+            end)
+        else
+            if autoTouchConnection then
+                autoTouchConnection:Disconnect()
+                autoTouchConnection = nil
+            end
+        end
+    end
+})
 
 OrionLib:Init()
 

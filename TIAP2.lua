@@ -94,6 +94,25 @@ end)
 end
 })
 
+local GodModeSection = Tab:AddSection({Name = "GodMode"})
+
+Tab:AddButton({
+    Name = "GodMode",
+    Callback = function()
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if (obj.Name == "KILLPART-5" or obj.Name == "KILLPART-100") and obj:IsA("BasePart") then
+                obj.CanCollide = false
+                obj.Transparency = 0.5
+                for _, child in ipairs(obj:GetChildren()) do
+                    if child.Name == "TouchInterest" or child:IsA("TouchTransmitter") then
+                        child:Destroy()
+                    end
+                end
+            end
+        end
+    end
+})
+
 local TPSection = Tab:AddSection({
     Name = "Teleports"
 })

@@ -71,6 +71,29 @@ Tab:AddButton({
     end
 })
 
+local AntiTrollSection = Tab:AddSection({
+	Name = "AntiTroll"
+})
+
+Tab:AddButton({
+	Name = "AntiTroll",
+	Callback = function()
+	local rs = game:GetService("RunService")
+
+rs.RenderStepped:Connect(function()
+    game.Workspace.Pyong.CanCollide = true
+    game.Workspace.Pyong.Transparency = 0
+    
+    for _, part in ipairs(game.workspace.TrollPart1:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 0
+            part.CanCollide = true
+        end
+    end
+end)
+end
+})
+
 local TPSection = Tab:AddSection({
     Name = "Teleports"
 })

@@ -280,6 +280,87 @@ Tab:AddButton({Name = "Invisible", Callback = function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/Scripts/refs/heads/main/InvisforPhantasm.lua"))()
 end})
 
+local AntiCollideSection = Tab:AddSection({
+    Name = "AntiCollide"
+})
+
+Tab:AddButton({
+    Name = "AntiCollide",
+    Callback = function()
+        for _, part in ipairs(workspace:GetDescendants()) do
+            if part.Name == "Part" and part:IsA("BasePart") then
+                if (part.Position == Vector3.new(194.2142333984375, 343.64630126953125, -43.70063018798828)) or (part.Position == Vector3.new(194.2142333984375, 343.64630126953125, -33.70064163208008)) then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end
+})
+
+local AntiGroupSection = Tab:AddSection({
+    Name = "AntiGroup"
+})
+
+Tab:AddButton({
+    Name = "AntiGroup",
+    Callback = function()
+        game.Workspace.Group.CanCollide = false
+        game.Workspace.Group.TouchInterest:Destroy()
+        if game.Workspace.Group:FindFirstChild("SurfaceGui") and game.Workspace.Group.SurfaceGui:FindFirstChild("TextLabel") and game.Workspace.Group.SurfaceGui.TextLabel.TextColor3 == Color3.fromRGB(255, 255, 0) then
+            game.Workspace.Group.SurfaceGui.Name = "SurfaceGui2"
+            game.Workspace.Group.SurfaceGui2.TextLabel.Text = "By Likegenm"
+        end
+        game.Workspace.Group.SurfaceGui.TextLabel.Text = "No Group"
+    end
+})
+
+local AVSection = Tab:AddSection({
+    Name = "AntiVoid"
+})
+
+local avEnabled = false
+local avPlatform = nil
+local avConnection = nil
+
+Tab:AddToggle({
+    Name = "Enable AntiVoid",
+    Default = false,
+    Callback = function(Value)
+        avEnabled = Value
+        if avEnabled then
+            local char = game.Players.LocalPlayer.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            
+            avPlatform = Instance.new("Part")
+            avPlatform.Name = "AntiVoidPlatform"
+            avPlatform.Size = Vector3.new(10, 1, 10)
+            avPlatform.Anchored = true
+            avPlatform.CanCollide = true
+            avPlatform.Transparency = 1
+            avPlatform.Parent = workspace
+            
+            avConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                local char = game.Players.LocalPlayer.Character
+                if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+                local hrp = char.HumanoidRootPart
+                
+                avPlatform.CFrame = CFrame.new(hrp.Position.X, -10, hrp.Position.Z)
+            end)
+        else
+            if avConnection then
+                avConnection:Disconnect()
+                avConnection = nil
+            end
+            if avPlatform then
+                avPlatform:Destroy()
+                avPlatform = nil
+            end
+        end
+    end
+})
+
 local OrbitSection = Tab:AddSection({Name = "Orbit Players"})
 
 local orbitActive = false

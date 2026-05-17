@@ -3235,7 +3235,6 @@ local DetectorSection = VisualTab:Section({
 })
 
 local noCameraAnimations = false
-local originalCameraAnimations = {}
 local cameraConnection = nil
 
 local Players = game:GetService("Players")
@@ -3249,22 +3248,33 @@ DetectorSection:Toggle({
         noCameraAnimations = state
         
         if state then
-            cameraConnection = RunService.RenderStepped:Connect(function()
-                if Camera.CameraSubject ~= Player.Character and Player.Character then
+            -- Применяем один раз
+            Camera.CameraType = Enum.CameraType.Custom
+            pcall(function()
+                if Player.Character then
                     local humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
                     if humanoid then
                         Camera.CameraSubject = humanoid
                     end
                 end
-                if Camera.CameraType ~= Enum.CameraType.Custom then
-                    Camera.CameraType = Enum.CameraType.Custom
-                end
+            end)
+            
+            -- Лёгкое обновление без перегрузки
+            cameraConnection = RunService.Heartbeat:Connect(function()
+                pcall(function()
+                    if Camera.CameraType ~= Enum.CameraType.Custom then
+                        Camera.CameraType = Enum.CameraType.Custom
+                    end
+                end)
             end)
         else
             if cameraConnection then
                 cameraConnection:Disconnect()
                 cameraConnection = nil
             end
+            pcall(function()
+                Camera.CameraType = Enum.CameraType.Follow
+            end)
         end
     end
 })

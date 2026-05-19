@@ -20,7 +20,7 @@ local WSS = Tab:AddSection({
     Name = "WalkSpeed"
 })
 
-local WSSlider = Tab:AddSlider({
+Tab:AddSlider({
     Name = "WalkSpeed",
     Min = 16,
     Max = 100,
@@ -59,6 +59,163 @@ game:GetService("UserInputService").JumpRequest:Connect(function()
     end
 end)
 
+local GravitySection = Tab:AddSection({
+    Name = "Gravity"
+})
+
+local gravValue = 196.2
+
+Tab:AddSlider({
+    Name = "Gravity",
+    Min = 0,
+    Max = 400,
+    Default = 196.2,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Gravity",
+    Callback = function(Value)
+        gravValue = Value
+        workspace.Gravity = Value
+    end
+})
+
+Tab:AddButton({
+    Name = "Set Default Gravity",
+    Callback = function()
+        gravValue = 196.2
+        workspace.Gravity = 196.2
+    end
+})
+
+local FlySection = Tab:AddSection({
+    Name = "Fly"
+})
+
+local Players = game.Players
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+FLYING = false
+QEfly = true
+iyflyspeed = 1
+vehicleflyspeed = 1
+
+local flyKeyDown, flyKeyUp
+
+function sFLY(vfly)
+    local plr = Players.LocalPlayer
+    local char = plr.Character or plr.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        repeat task.wait() until char:FindFirstChildOfClass("Humanoid")
+        humanoid = char:FindFirstChildOfClass("Humanoid")
+    end
+
+    if flyKeyDown or flyKeyUp then
+        flyKeyDown:Disconnect()
+        flyKeyUp:Disconnect()
+    end
+
+    local T = char:FindFirstChild("HumanoidRootPart")
+    if not T then return end
+    local CONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
+    local lCONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
+    local SPEED = 0
+
+    local function FLY()
+        FLYING = true
+        local BG = Instance.new('BodyGyro')
+        local BV = Instance.new('BodyVelocity')
+        BG.P = 9e4
+        BG.Parent = T
+        BV.Parent = T
+        BG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        BG.CFrame = T.CFrame
+        BV.Velocity = Vector3.new(0, 0, 0)
+        BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        task.spawn(function()
+            repeat task.wait()
+                local camera = workspace.CurrentCamera
+                if not vfly and humanoid then
+                    humanoid.PlatformStand = true
+                end
+
+                if CONTROL.L + CONTROL.R ~= 0 or CONTROL.F + CONTROL.B ~= 0 or CONTROL.Q + CONTROL.E ~= 0 then
+                    SPEED = 50
+                elseif not (CONTROL.L + CONTROL.R ~= 0 or CONTROL.F + CONTROL.B ~= 0 or CONTROL.Q + CONTROL.E ~= 0) and SPEED ~= 0 then
+                    SPEED = 0
+                end
+                if (CONTROL.L + CONTROL.R) ~= 0 or (CONTROL.F + CONTROL.B) ~= 0 or (CONTROL.Q + CONTROL.E) ~= 0 then
+                    BV.Velocity = ((camera.CFrame.LookVector * (CONTROL.F + CONTROL.B)) + ((camera.CFrame * CFrame.new(CONTROL.L + CONTROL.R, (CONTROL.F + CONTROL.B + CONTROL.Q + CONTROL.E) * 0.2, 0).p) - camera.CFrame.p)) * SPEED
+                    lCONTROL = {F = CONTROL.F, B = CONTROL.B, L = CONTROL.L, R = CONTROL.R}
+                elseif (CONTROL.L + CONTROL.R) == 0 and (CONTROL.F + CONTROL.B) == 0 and (CONTROL.Q + CONTROL.E) == 0 and SPEED ~= 0 then
+                    BV.Velocity = ((camera.CFrame.LookVector * (lCONTROL.F + lCONTROL.B)) + ((camera.CFrame * CFrame.new(lCONTROL.L + lCONTROL.R, (lCONTROL.F + lCONTROL.B + CONTROL.Q + CONTROL.E) * 0.2, 0).p) - camera.CFrame.p)) * SPEED
+                else
+                    BV.Velocity = Vector3.new(0, 0, 0)
+                end
+                BG.CFrame = camera.CFrame
+            until not FLYING
+            CONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
+            lCONTROL = {F = 0, B = 0, L = 0, R = 0, Q = 0, E = 0}
+            SPEED = 0
+            BG:Destroy()
+            BV:Destroy()
+
+            if humanoid then humanoid.PlatformStand = false end
+        end)
+    end
+
+    flyKeyDown = UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        if input.KeyCode == Enum.KeyCode.W then
+            CONTROL.F = (vfly and vehicleflyspeed or iyflyspeed)
+        elseif input.KeyCode == Enum.KeyCode.S then
+            CONTROL.B = - (vfly and vehicleflyspeed or iyflyspeed)
+        elseif input.KeyCode == Enum.KeyCode.A then
+            CONTROL.L = - (vfly and vehicleflyspeed or iyflyspeed)
+        elseif input.KeyCode == Enum.KeyCode.D then
+            CONTROL.R = (vfly and vehicleflyspeed or iyflyspeed)
+        elseif input.KeyCode == Enum.KeyCode.E and QEfly then
+            CONTROL.Q = (vfly and vehicleflyspeed or iyflyspeed)*2
+        elseif input.KeyCode == Enum.KeyCode.Q and QEfly then
+            CONTROL.E = -(vfly and vehicleflyspeed or iyflyspeed)*2
+        end
+        pcall(function() camera.CameraType = Enum.CameraType.Track end)
+    end)
+
+    flyKeyUp = UserInputService.InputEnded:Connect(function(input, processed)
+        if processed then return end
+        if input.KeyCode == Enum.KeyCode.W then
+            CONTROL.F = 0
+        elseif input.KeyCode == Enum.KeyCode.S then
+            CONTROL.B = 0
+        elseif input.KeyCode == Enum.KeyCode.A then
+            CONTROL.L = 0
+        elseif input.KeyCode == Enum.KeyCode.D then
+            CONTROL.R = 0
+        elseif input.KeyCode == Enum.KeyCode.E then
+            CONTROL.Q = 0
+        elseif input.KeyCode == Enum.KeyCode.Q then
+            CONTROL.E = 0
+        end
+    end)
+    FLY()
+end
+
+Tab:AddToggle({
+    Name = "Fly",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            sFLY(false)
+        else
+            FLYING = false
+            if flyKeyDown then flyKeyDown:Disconnect() end
+            if flyKeyUp then flyKeyUp:Disconnect() end
+        end
+    end
+})
+
 local JerkSection = Tab:AddSection({
     Name = "Jerk"
 })
@@ -72,26 +229,21 @@ Tab:AddButton({
 })
 
 local AntiTrollSection = Tab:AddSection({
-	Name = "AntiTroll"
+    Name = "AntiTroll"
 })
 
 Tab:AddButton({
-	Name = "AntiTroll",
-	Callback = function()
-	local rs = game:GetService("RunService")
-
-rs.RenderStepped:Connect(function()
-    game.Workspace.Pyong.CanCollide = true
-    game.Workspace.Pyong.Transparency = 0
-    
-    for _, part in ipairs(game.workspace.TrollPart1:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 0
-            part.CanCollide = true
+    Name = "AntiTroll",
+    Callback = function()
+        game.Workspace.Pyong.CanCollide = true
+        game.Workspace.Pyong.Transparency = 0
+        for _, part in ipairs(game.workspace.TrollPart1:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+                part.CanCollide = true
+            end
         end
     end
-end)
-end
 })
 
 local GodModeSection = Tab:AddSection({Name = "GodMode"})
@@ -180,52 +332,6 @@ Tab:AddButton({Name = "4 Troll", Callback = function() local char = game.Players
 Tab:AddButton({Name = "4 Troll Win", Callback = function() local char = game.Players.LocalPlayer.Character if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = CFrame.new(-48.20106506347656, 297.1462707519531, 8.803067207336426) end end})
 Tab:AddButton({Name = "5 Troll", Callback = function() local char = game.Players.LocalPlayer.Character if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = CFrame.new(-6.850697994232178, 325.1462707519531, -63.76831817626953) end end})
 Tab:AddButton({Name = "5 Troll Win", Callback = function() local char = game.Players.LocalPlayer.Character if char and char:FindFirstChild("HumanoidRootPart") then char.HumanoidRootPart.CFrame = CFrame.new(6.5985331535339355, 347.1462707519531, -33.738792419433594) end end})
-
-local FlySection = Tab:AddSection({Name = "Fly"})
-
-local flying = false
-local flySpeed = 50
-local flyConnection = nil
-
-Tab:AddToggle({Name = "Fly", Default = false, Callback = function(Value)
-    flying = Value
-    local char = game.Players.LocalPlayer.Character
-    if not char then return end
-    local hum = char:FindFirstChild("Humanoid")
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then return end
-    if flying then
-        hum.PlatformStand = true
-        flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not flying then return end
-            local moveDir = Vector3.zero
-            local uis = game:GetService("UserInputService")
-            local camera = workspace.CurrentCamera
-            if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += camera.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= camera.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += camera.CFrame.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= camera.CFrame.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-            if uis:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0, 1, 0) end
-            if moveDir.Magnitude > 0 then hrp.Velocity = moveDir.Unit * flySpeed else hrp.Velocity = Vector3.zero end
-        end)
-    else
-        hum.PlatformStand = false
-        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    end
-end})
-
-Tab:AddSlider({Name = "Fly Speed", Min = 10, Max = 200, Default = 50, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "Speed", Callback = function(Value) flySpeed = Value end})
-
-local FreezeSection = Tab:AddSection({Name = "Freeze"})
-local freezeActive = false
-Tab:AddToggle({Name = "Freeze on C", Default = false, Callback = function(Value) freezeActive = Value end})
-game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.C and freezeActive then
-        pcall(function() game:GetService("ReplicatedStorage").Remotes.Damage:FireServer("Stun", "StunBeam") end)
-    end
-end)
 
 local SpinSection = Tab:AddSection({Name = "SpinBot"})
 local spinActive = false

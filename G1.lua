@@ -32,7 +32,8 @@ local distanceColor = Color3.fromRGB(255, 255, 255)
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
-local UIS = game:GetService("UserInputService")
+local rs = game:GetService("RunService")
+local ts = game:GetService("TweenService")
 
 local scanItems = function()
    allItems = {}
@@ -655,6 +656,33 @@ VisualTab:CreateColorPicker({
    end
 })
 
+local thirdPersonEnabled = false
+
+local oldIndex
+oldIndex = hookmetamethod(game, "__newindex", function(self, prop, value)
+    if self == player and prop == "CameraMode" then
+        return
+    end
+    return oldIndex(self, prop, value)
+end)
+
+VisualTab:CreateToggle({
+   Name = "Third Person",
+   CurrentValue = false,
+   Flag = "ThirdPerson",
+   Callback = function(Value)
+      thirdPersonEnabled = Value
+      if Value then
+         player.CameraMode = Enum.CameraMode.Classic
+         player.CameraMinZoomDistance = 0.5
+         player.CameraMaxZoomDistance = 20
+      else
+         player.CameraMinZoomDistance = 0.5
+         player.CameraMaxZoomDistance = 0.5
+      end
+   end
+})
+
 local fullbrightEnabled = false
 local defaultLighting = {}
 
@@ -843,17 +871,17 @@ GrannyTab:CreateButton({
 
 local OrbitSection = GrannyTab:CreateSection("Orbit")
 
-local orbitEnabled = false
-local orbitSpeed = 5
-local orbitRadius = 10
-local orbitHeight = 0
+local orbitGrannyEnabled = false
+local orbitGrannySpeed = 5
+local orbitGrannyRadius = 10
+local orbitGrannyHeight = 0
 
 GrannyTab:CreateToggle({
    Name = "Orbit Granny",
    CurrentValue = false,
    Flag = "OrbitGranny",
    Callback = function(Value)
-      orbitEnabled = Value
+      orbitGrannyEnabled = Value
    end
 })
 
@@ -863,9 +891,9 @@ GrannyTab:CreateSlider({
    Increment = 1,
    Suffix = "",
    CurrentValue = 5,
-   Flag = "OrbitSpeed",
+   Flag = "OrbitGrannySpeed",
    Callback = function(Value)
-      orbitSpeed = Value
+      orbitGrannySpeed = Value
    end
 })
 
@@ -875,9 +903,9 @@ GrannyTab:CreateSlider({
    Increment = 1,
    Suffix = "Studs",
    CurrentValue = 10,
-   Flag = "OrbitRadius",
+   Flag = "OrbitGrannyRadius",
    Callback = function(Value)
-      orbitRadius = Value
+      orbitGrannyRadius = Value
    end
 })
 
@@ -887,13 +915,13 @@ GrannyTab:CreateSlider({
    Increment = 1,
    Suffix = "Studs",
    CurrentValue = 0,
-   Flag = "OrbitHeight",
+   Flag = "OrbitGrannyHeight",
    Callback = function(Value)
-      orbitHeight = Value
+      orbitGrannyHeight = Value
    end
 })
 
-local AutoStunGrannySection = GrannyTab:CreateSection("Auto Freeze")
+local AutoFreezeGrannySection = GrannyTab:CreateSection("Auto Freeze")
 
 local autoFreezeGrannyEnabled = false
 local autoFreezeGrannyRange = 10
@@ -1083,7 +1111,7 @@ SlendrinaTab:CreateSlider({
    end
 })
 
-local AutoStunSlendrinaSection = SlendrinaTab:CreateSection("Auto Freeze")
+local AutoFreezeSlendrinaSection = SlendrinaTab:CreateSection("Auto Freeze")
 
 local autoFreezeSlendrinaEnabled = false
 local autoFreezeSlendrinaRange = 10
@@ -1564,16 +1592,74 @@ LocalPlayerTab:CreateToggle({
    end
 })
 
-local AntiTrapSection = LocalPlayerTab:CreateSection("Anti Trap")
+local InvisibleSection = LocalPlayerTab:CreateSection("Invisible")
 
-local antiTrapEnabled = false
+local invis_on = false
+local invisTimer = 0
+local invisX = 1000
+local invisY = 1000
+local invisZ = 1000
+
+local function setTransparency(character, transparency)
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") or part:IsA("Decal") then
+            part.Transparency = transparency
+        end
+    end
+end
+
+local function activateInvis()
+   if invis_on then return end
+   local charNow = player.Character
+   if not charNow or not charNow:FindFirstChild("HumanoidRootPart") then return end
+
+   local savedpos = charNow.HumanoidRootPart.CFrame
+   charNow.HumanoidRootPart.CFrame = CFrame.new(invisX, invisY, invisZ)
+   task.wait(0.15)
+
+   local Seat = Instance.new('Seat', game.Workspace)
+   Seat.Anchored = false
+   Seat.CanCollide = false
+   Seat.Name = 'invischair'
+   Seat.Transparency = 1
+   Seat.Position = Vector3.new(invisX, invisY, invisZ)
+
+   local Weld = Instance.new("Weld", Seat)
+   local torso = charNow:FindFirstChild("Torso") or charNow:FindFirstChild("UpperTorso")
+   if torso then
+      Weld.Part0 = Seat
+      Weld.Part1 = torso
+   end
+
+   task.wait()
+   Seat.CFrame = savedpos
+   setTransparency(charNow, 0.5)
+   invis_on = true
+   invisTimer = 3
+end
+
+local function deactivateInvis()
+   if not invis_on then return end
+   local invisChair = workspace:FindFirstChild('invischair')
+   if invisChair then invisChair:Destroy() end
+   local charNow = player.Character
+   if charNow then
+      setTransparency(charNow, 0)
+   end
+   invis_on = false
+   invisTimer = 0
+end
 
 LocalPlayerTab:CreateToggle({
-   Name = "Anti Trap",
+   Name = "Invisible",
    CurrentValue = false,
-   Flag = "AntiTrap",
+   Flag = "Invisible",
    Callback = function(Value)
-      antiTrapEnabled = Value
+      if Value then
+         activateInvis()
+      else
+         deactivateInvis()
+      end
    end
 })
 
@@ -1655,9 +1741,13 @@ LocalPlayerTab:CreateSlider({
 local RangeSection = LocalPlayerTab:CreateSection("Range")
 
 local rangeCircleEnabled = false
-local rangeCircleColor = Color3.fromRGB(255, 255, 255)
 local rangeCircleRainbow = false
 local rangeCircle = nil
+local rangeBeamCenter = nil
+local rangeBeamAttachments = {}
+local rangeBeamSegments = 1000
+local rangeBeamThickness = 0.7
+local rangeBeamRadius = 5
 
 LocalPlayerTab:CreateToggle({
    Name = "Range",
@@ -1665,9 +1755,12 @@ LocalPlayerTab:CreateToggle({
    Flag = "Range",
    Callback = function(Value)
       rangeCircleEnabled = Value
-      if not Value and rangeCircle then
-         rangeCircle:Destroy()
-         rangeCircle = nil
+      if not Value then
+         if rangeBeamCenter then
+            rangeBeamCenter:Destroy()
+            rangeBeamCenter = nil
+            rangeBeamAttachments = {}
+         end
       end
    end
 })
@@ -1686,9 +1779,13 @@ LocalPlayerTab:CreateColorPicker({
    Color = Color3.fromRGB(255, 255, 255),
    Flag = "RangeColor",
    Callback = function(Value)
-      rangeCircleColor = Value
-      if rangeCircle then
-         rangeCircle.BrickColor = BrickColor.new(Value)
+      if rangeBeamCenter then
+         local color = ColorSequence.new(Value)
+         for _, v in ipairs(rangeBeamCenter:GetChildren()) do
+            if v:IsA("Beam") then
+               v.Color = color
+            end
+         end
       end
    end
 })
@@ -1776,7 +1873,7 @@ local instanceKillSlendrinaTimer = 0
 local espUpdateTimer = 0
 local pickUpAuraTimer = 0
 local useAuraTimer = 0
-local orbitAngle = 0
+local orbitGrannyAngle = 0
 local orbitSlendrinaAngle = 0
 local killAuraTimer = 0
 local autoFreezeGrannyTimer = 0
@@ -1784,7 +1881,14 @@ local autoFreezeSlendrinaTimer = 0
 local lagSwitchTimer = 0
 local lagSwitchActive = false
 local noclipTimer = 0
-local antiTrapTimer = 0
+
+game:GetService("RunService").RenderStepped:Connect(function(delta)
+   if thirdPersonEnabled then
+      player.CameraMode = Enum.CameraMode.Classic
+      player.CameraMinZoomDistance = 0.5
+      player.CameraMaxZoomDistance = 20
+   end
+end)
 
 game:GetService("RunService").Heartbeat:Connect(function(delta)
    if speedEnabled then
@@ -1805,17 +1909,6 @@ game:GetService("RunService").Heartbeat:Connect(function(delta)
             if not hum.Jump then
                hum.Jump = true
             end
-         end
-      end
-   end
-
-   antiTrapTimer = antiTrapTimer + delta
-   if antiTrapEnabled and antiTrapTimer >= 1 then
-      antiTrapTimer = 0
-      local openFolder = workspace:FindFirstChild("Open")
-      if openFolder then
-         for _, obj in pairs(openFolder:GetChildren()) do
-            obj:Destroy()
          end
       end
    end
@@ -2055,15 +2148,15 @@ game:GetService("RunService").Heartbeat:Connect(function(delta)
       end
    end
 
-   if orbitEnabled then
+   if orbitGrannyEnabled then
       local char = player.Character
       if char and char:FindFirstChild("HumanoidRootPart") then
          local granny = findGrannyModel()
          if granny and granny:FindFirstChild("HumanoidRootPart") then
-            orbitAngle = orbitAngle + (orbitSpeed * delta)
-            local offsetX = math.cos(orbitAngle) * orbitRadius
-            local offsetZ = math.sin(orbitAngle) * orbitRadius
-            local targetPos = granny.HumanoidRootPart.Position + Vector3.new(offsetX, orbitHeight, offsetZ)
+            orbitGrannyAngle = orbitGrannyAngle + (orbitGrannySpeed * delta)
+            local offsetX = math.cos(orbitGrannyAngle) * orbitGrannyRadius
+            local offsetZ = math.sin(orbitGrannyAngle) * orbitGrannyRadius
+            local targetPos = granny.HumanoidRootPart.Position + Vector3.new(offsetX, orbitGrannyHeight, offsetZ)
             char.HumanoidRootPart.CFrame = CFrame.new(targetPos)
          end
       end
@@ -2085,30 +2178,73 @@ game:GetService("RunService").Heartbeat:Connect(function(delta)
 
    if rangeCircleEnabled then
       local char = player.Character
-      if char and char:FindFirstChild("HumanoidRootPart") then
-         local root = char.HumanoidRootPart
-         local legY = root.Position.Y - 3
-         if not rangeCircle then
-            rangeCircle = Instance.new("Part")
-            rangeCircle.Name = "RangeCircle"
-            rangeCircle.Anchored = true
-            rangeCircle.CanCollide = false
-            rangeCircle.Massless = true
-            rangeCircle.Size = Vector3.new(0.2, 0.2, 0.2)
-            rangeCircle.Shape = Enum.PartType.Cylinder
-            rangeCircle.Material = Enum.Material.Neon
-            rangeCircle.BrickColor = BrickColor.new(rangeCircleColor)
-            rangeCircle.Parent = workspace
+      if not char then return end
+      local leftFoot = char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
+      local rightFoot = char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
+      local hrp = char:FindFirstChild("HumanoidRootPart")
+      
+      local targetPos
+      if leftFoot and rightFoot then
+         targetPos = (leftFoot.Position + rightFoot.Position) / 2 - Vector3.new(0, 0.3, 0)
+      elseif hrp then
+         targetPos = hrp.Position - Vector3.new(0, 3, 0)
+      else
+         return
+      end
+      
+      rangeBeamRadius = pickUpAuraRange
+      
+      if not rangeBeamCenter then
+         rangeBeamCenter = Instance.new("Part")
+         rangeBeamCenter.Size = Vector3.new(0.1, 0.1, 0.1)
+         rangeBeamCenter.Anchored = true
+         rangeBeamCenter.CanCollide = false
+         rangeBeamCenter.Transparency = 1
+         rangeBeamCenter.Parent = workspace
+         
+         rangeBeamAttachments = {}
+         for i = 1, rangeBeamSegments do
+            local att = Instance.new("Attachment")
+            att.Parent = rangeBeamCenter
+            rangeBeamAttachments[i] = att
          end
-         rangeCircle.Position = Vector3.new(root.Position.X, legY, root.Position.Z)
-         local rot = tick() * 180
-         rangeCircle.Orientation = Vector3.new(0, rot % 360, 90)
-         rangeCircle.Size = Vector3.new(pickUpAuraRange * 0.2, pickUpAuraRange * 2, pickUpAuraRange * 2)
+         
+         for i = 1, rangeBeamSegments do
+            local beam = Instance.new("Beam")
+            beam.Attachment0 = rangeBeamAttachments[i]
+            beam.Attachment1 = rangeBeamAttachments[i % rangeBeamSegments + 1]
+            beam.Width0 = rangeBeamThickness
+            beam.Width1 = rangeBeamThickness
+            beam.FaceCamera = true
+            beam.Parent = rangeBeamCenter
+         end
+      end
+      
+      ts:Create(rangeBeamCenter, TweenInfo.new(0.1), {Position = targetPos}):Play()
+      
+      local hue = tick() % 5 / 5
+      local color
+      if rangeCircleRainbow then
+         color = ColorSequence.new(Color3.fromHSV(hue, 1, 1))
+      end
+      
+      for i = 1, rangeBeamSegments do
+         local angle = math.rad((i - 1) * 360 / rangeBeamSegments)
+         rangeBeamAttachments[i].Position = Vector3.new(math.cos(angle) * rangeBeamRadius, 0, math.sin(angle) * rangeBeamRadius)
+      end
+      
+      if rangeCircleRainbow then
+         for _, v in ipairs(rangeBeamCenter:GetChildren()) do
+            if v:IsA("Beam") then
+               v.Color = color
+            end
+         end
       end
    else
-      if rangeCircle then
-         rangeCircle:Destroy()
-         rangeCircle = nil
+      if rangeBeamCenter then
+         rangeBeamCenter:Destroy()
+         rangeBeamCenter = nil
+         rangeBeamAttachments = {}
       end
    end
 end)
@@ -2129,6 +2265,13 @@ game:GetService("RunService").RenderStepped:Connect(function(delta)
       local slendrina = findSlendrinaModel()
       if slendrina and slendrina:FindFirstChild("Head") then
          cam.CFrame = CFrame.new(cam.CFrame.Position, slendrina.Head.Position)
+      end
+   end
+
+   if invisTimer > 0 then
+      invisTimer = invisTimer - delta
+      if invisTimer <= 0 then
+         deactivateInvis()
       end
    end
 
@@ -2251,14 +2394,11 @@ game:GetService("RunService").RenderStepped:Connect(function(delta)
          end
       end
    end
-
-   if rangeCircleRainbow and rangeCircle then
-      rangeCircle.BrickColor = BrickColor.new(rainbowColor)
-   end
 end)
 
 player.CharacterAdded:Connect(function(newChar)
    task.wait(0.5)
+   if invis_on then deactivateInvis() end
    if espEnabled then applyESP() end
    if nametagsEnabled then applyNameTags() end
    if distanceEnabled then applyDistanceTags() end
@@ -2313,9 +2453,10 @@ player.CharacterAdded:Connect(function(newChar)
          end
       end)
    end
-   if rangeCircle then
-      rangeCircle:Destroy()
-      rangeCircle = nil
+   if rangeBeamCenter then
+      rangeBeamCenter:Destroy()
+      rangeBeamCenter = nil
+      rangeBeamAttachments = {}
    end
 end)
 

@@ -145,7 +145,6 @@ MainTab:AddSlider({
     end
 })
 
--- Vehicle Fly
 local vehicleFlyEnabled = false
 local vehicleFlySpeed = 200
 local vehicleFlyConnection = nil
@@ -204,7 +203,6 @@ MainTab:AddSlider({
     end
 })
 
--- Vehicle Turbo
 local vehicleTurboEnabled = false
 local vehicleTurboSpeed = 100
 local vehicleTurboConnection = nil
@@ -264,7 +262,6 @@ MainTab:AddSlider({
     end
 })
 
--- Probes
 local function getProbes()
     local probes = {}
     local probesFolder = workspace:FindFirstChild("player_related")
@@ -275,6 +272,23 @@ local function getProbes()
             for _, probe in ipairs(probesContainer:GetChildren()) do
                 if probe.Name == tostring(userId) then
                     table.insert(probes, probe.Name)
+                end
+            end
+        end
+    end
+    return probes
+end
+
+local function getProbeObjects()
+    local probes = {}
+    local probesFolder = workspace:FindFirstChild("player_related")
+    if probesFolder then
+        local probesContainer = probesFolder:FindFirstChild("probes")
+        if probesContainer then
+            local userId = LocalPlayer.UserId
+            for _, probe in ipairs(probesContainer:GetChildren()) do
+                if probe.Name == tostring(userId) then
+                    table.insert(probes, probe)
                 end
             end
         end
@@ -404,65 +418,127 @@ task.spawn(function()
     end
 end)
 
-local function getPlayerNames()
-    local names = {}
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(names, p.Name)
-        end
-    end
-    return names
+local probesESPEnabled = false
+local probesESPObjects = {}
+local probesESPConnection = nil
+
+local function createProbeESP(probe)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ProbeESP"
+    highlight.FillColor = Color3.fromRGB(255, 255, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = probe
+    highlight.Parent = probe
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ProbeNameTag"
+    billboard.Size = UDim2.new(4, 0, 1, 0)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = probe
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Probe"
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextSize = 18
+    textLabel.Parent = billboard
+    
+    local tracerLine = Drawing.new("Line")
+    tracerLine.Color = Color3.fromRGB(255, 255, 0)
+    tracerLine.Thickness = 1
+    tracerLine.Transparency = 0.7
+    tracerLine.Visible = true
+    
+    table.insert(probesESPObjects, {
+        Probe = probe,
+        Highlight = highlight,
+        Billboard = billboard,
+        TracerLine = tracerLine
+    })
 end
 
--- Helper function to get primary part (player or vehicle)
+local function removeProbeESP(data)
+    if data.Highlight then data.Highlight:Destroy() end
+    if data.Billboard then data.Billboard:Destroy() end
+    if data.TracerLine then data.TracerLine:Remove() end
+end
+
+local function clearAllProbesESP()
+    for _, data in ipairs(probesESPObjects) do
+        removeProbeESP(data)
+    end
+    probesESPObjects = {}
+end
+
+local function updateProbesESP()
+    for _, data in ipairs(probesESPObjects) do
+        if data.TracerLine and data.Probe and data.Probe.Parent then
+            local probePos = data.Probe:GetPivot().Position
+            local screenPos, onScreen = Camera:WorldToViewportPoint(probePos)
+            
+            if onScreen then
+                data.TracerLine.Visible = true
+                data.TracerLine.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                data.TracerLine.To = Vector2.new(screenPos.X, screenPos.Y)
+            else
+                data.TracerLine.Visible = false
+            end
+        end
+    end
+end
+
+local function refreshProbesESP()
+    clearAllProbesESP()
+    if probesESPEnabled then
+        local probes = getProbeObjects()
+        for _, probe in ipairs(probes) do
+            createProbeESP(probe)
+        end
+    end
+end
+
+VisualTab:AddParagraph("Probes ESP", "")
+
+VisualTab:AddToggle({
+    Name = "Probes ESP",
+    Default = false,
+    Callback = function(v)
+        probesESPEnabled = v
+        if v then
+            refreshProbesESP()
+            probesESPConnection = RunService.RenderStepped:Connect(function()
+                updateProbesESP()
+            end)
+        else
+            clearAllProbesESP()
+            if probesESPConnection then
+                probesESPConnection:Disconnect()
+                probesESPConnection = nil
+            end
+        end
+    end
+})
+
+VisualTab:AddButton({
+    Name = "Refresh Probes ESP",
+    Callback = function()
+        refreshProbesESP()
+    end
+})
+
 local function getPrimaryPart()
     local char = LocalPlayer.Character
     if not char then return nil end
     return char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
 end
 
--- Instance Teleport через RunService
-local instanceTeleportEnabled = false
-local instanceTeleportSpeed = 5000
-local instanceTeleportConnection = nil
-local instanceTeleportTarget = nil
-
-local function startInstanceTeleport(targetPos)
-    if instanceTeleportConnection then
-        instanceTeleportConnection:Disconnect()
-    end
-    
-    instanceTeleportTarget = targetPos
-    
-    instanceTeleportConnection = RunService.Heartbeat:Connect(function()
-        if not instanceTeleportEnabled then
-            instanceTeleportConnection:Disconnect()
-            instanceTeleportConnection = nil
-            return
-        end
-        
-        local currentPart = getPrimaryPart()
-        if not currentPart then return end
-        
-        local direction = (instanceTeleportTarget - currentPart.Position)
-        local distance = direction.Magnitude
-        
-        if distance < 10 then
-            currentPart.Velocity = Vector3.zero
-            instanceTeleportEnabled = false
-            instanceTeleportConnection:Disconnect()
-            instanceTeleportConnection = nil
-        else
-            currentPart.Velocity = direction.Unit * instanceTeleportSpeed
-        end
-    end)
-end
-
--- ==================== TELEPORTS TAB ====================
-
--- Player Teleports Paragraph
-TeleportTab:AddParagraph("Player Teleports", "")
-
 local function getPlayerNames()
     local names = {}
     for _, p in ipairs(Players:GetPlayers()) do
@@ -473,175 +549,10 @@ local function getPlayerNames()
     return names
 end
 
-local teleportPlayerDropdown = TeleportTab:AddDropdown({
-    Name = "Select Player",
-    Default = "",
-    Options = getPlayerNames(),
-    Callback = function(v) end
-})
-
-TeleportTab:AddButton({
-    Name = "Teleport to Player",
-    Callback = function()
-        local targetName = teleportPlayerDropdown.Value
-        if targetName and targetName ~= "" then
-            local target = Players:FindFirstChild(targetName)
-            if target and target.Character then
-                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if targetHrp then
-                    local part = getPrimaryPart()
-                    if part then
-                        part.CFrame = targetHrp.CFrame
-                    end
-                end
-            end
-        end
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Refresh Players",
-    Callback = function()
-        teleportPlayerDropdown:Refresh(getPlayerNames(), true)
-    end
-})
-
--- Instance Teleport Paragraph
-TeleportTab:AddParagraph("Instance Teleport", "Works for player and vehicle")
-
-TeleportTab:AddToggle({
-    Name = "Instance Teleport",
-    Default = false,
-    Callback = function(v)
-        instanceTeleportEnabled = v
-        if not v and instanceTeleportConnection then
-            instanceTeleportConnection:Disconnect()
-            instanceTeleportConnection = nil
-            local part = getPrimaryPart()
-            if part then
-                part.Velocity = Vector3.zero
-            end
-        end
-    end
-})
-
-TeleportTab:AddSlider({
-    Name = "Instance TP Speed",
-    Min = 1000,
-    Max = 10000,
-    Default = 5000,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 100,
-    ValueName = "Speed",
-    Callback = function(v)
-        instanceTeleportSpeed = v
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Instance TP to Player",
-    Callback = function()
-        local targetName = teleportPlayerDropdown.Value
-        if targetName and targetName ~= "" then
-            local target = Players:FindFirstChild(targetName)
-            if target and target.Character then
-                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if targetHrp then
-                    instanceTeleportEnabled = true
-                    startInstanceTeleport(targetHrp.Position)
-                end
-            end
-        end
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Instance TP to Cursor",
-    Callback = function()
-        local mouse = LocalPlayer:GetMouse()
-        instanceTeleportEnabled = true
-        startInstanceTeleport(mouse.Hit.Position)
-    end
-})
-
--- Cities Teleport Paragraph
-TeleportTab:AddParagraph("Cities Teleports", "")
-
-local cities = {
-    ["Hazelton"] = Vector3.new(3530.361083984375, 47.397972106933594, -12934.0654296875),
-    ["Prior Lake"] = Vector3.new(832.2999877929688, 22.198026657104492, 3563.01953125),
-    ["Starbuck"] = Vector3.new(483.1630859375, 56.198020935058594, 17157.279296875),
-    ["Hibbing"] = Vector3.new(-9458.9658203125, 22.177297592163086, 7043.642578125),
-    ["Wadena"] = Vector3.new(17727.73828125, 60.198020935058594, -15855.8994140625)
-}
-
-local cityNames = {}
-for name, _ in pairs(cities) do
-    table.insert(cityNames, name)
-end
-
-local citiesDropdown = TeleportTab:AddDropdown({
-    Name = "Select City",
-    Default = "",
-    Options = cityNames,
-    Callback = function(v) end
-})
-
-TeleportTab:AddButton({
-    Name = "Teleport to City",
-    Callback = function()
-        local cityName = citiesDropdown.Value
-        if cityName and cityName ~= "" and cities[cityName] then
-            local part = getPrimaryPart()
-            if part then
-                part.CFrame = CFrame.new(cities[cityName])
-            end
-        end
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Vehicle TP to City",
-    Callback = function()
-        local cityName = citiesDropdown.Value
-        if cityName and cityName ~= "" and cities[cityName] then
-            instanceTeleportEnabled = true
-            startInstanceTeleport(cities[cityName])
-        end
-    end
-})
-
-TeleportTab:AddButton({
-    Name = "Instance TP to City",
-    Callback = function()
-        local cityName = citiesDropdown.Value
-        if cityName and cityName ~= "" and cities[cityName] then
-            instanceTeleportEnabled = true
-            startInstanceTeleport(cities[cityName])
-        end
-    end
-})
-
--- Vehicle Teleport Paragraph
-TeleportTab:AddParagraph("Vehicle Teleport", "")
-
 local vehicleTeleportSpeed = 500
 local vehicleTeleportConnection = nil
 local vehicleTeleportActive = false
 local vehicleTeleportTarget = nil
-
-TeleportTab:AddSlider({
-    Name = "Vehicle TP Speed",
-    Min = 100,
-    Max = 5000,
-    Default = 500,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 10,
-    ValueName = "Speed",
-    Callback = function(v)
-        vehicleTeleportSpeed = v
-    end
-})
 
 local function startVehicleTeleport(targetPos)
     if vehicleTeleportConnection then
@@ -683,6 +594,47 @@ local function startVehicleTeleport(targetPos)
     end)
 end
 
+local cities = {
+    ["Hazelton"] = Vector3.new(3530.361083984375, 47.397972106933594, -12934.0654296875),
+    ["Prior Lake"] = Vector3.new(832.2999877929688, 22.198026657104492, 3563.01953125),
+    ["Starbuck"] = Vector3.new(483.1630859375, 56.198020935058594, 17157.279296875),
+    ["Hibbing"] = Vector3.new(-9458.9658203125, 22.177297592163086, 7043.642578125),
+    ["Wadena"] = Vector3.new(17727.73828125, 60.198020935058594, -15855.8994140625)
+}
+
+local cityNames = {}
+for name, _ in pairs(cities) do
+    table.insert(cityNames, name)
+end
+
+TeleportTab:AddParagraph("Player Teleports", "")
+
+local teleportPlayerDropdown = TeleportTab:AddDropdown({
+    Name = "Select Player",
+    Default = "",
+    Options = getPlayerNames(),
+    Callback = function(v) end
+})
+
+TeleportTab:AddButton({
+    Name = "Teleport to Player",
+    Callback = function()
+        local targetName = teleportPlayerDropdown.Value
+        if targetName and targetName ~= "" then
+            local target = Players:FindFirstChild(targetName)
+            if target and target.Character then
+                local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
+                if targetHrp then
+                    local part = getPrimaryPart()
+                    if part then
+                        part.CFrame = targetHrp.CFrame
+                    end
+                end
+            end
+        end
+    end
+})
+
 TeleportTab:AddButton({
     Name = "Vehicle TP to Player",
     Callback = function()
@@ -700,10 +652,31 @@ TeleportTab:AddButton({
 })
 
 TeleportTab:AddButton({
-    Name = "Vehicle TP to Cursor",
+    Name = "Refresh Players",
     Callback = function()
-        local mouse = LocalPlayer:GetMouse()
-        startVehicleTeleport(mouse.Hit.Position)
+        teleportPlayerDropdown:Refresh(getPlayerNames(), true)
+    end
+})
+
+TeleportTab:AddParagraph("Cities Teleports", "")
+
+local citiesDropdown = TeleportTab:AddDropdown({
+    Name = "Select City",
+    Default = "",
+    Options = cityNames,
+    Callback = function(v) end
+})
+
+TeleportTab:AddButton({
+    Name = "Teleport to City",
+    Callback = function()
+        local cityName = citiesDropdown.Value
+        if cityName and cityName ~= "" and cities[cityName] then
+            local part = getPrimaryPart()
+            if part then
+                part.CFrame = CFrame.new(cities[cityName])
+            end
+        end
     end
 })
 
@@ -714,6 +687,21 @@ TeleportTab:AddButton({
         if cityName and cityName ~= "" and cities[cityName] then
             startVehicleTeleport(cities[cityName])
         end
+    end
+})
+
+TeleportTab:AddParagraph("Vehicle Teleport", "")
+
+TeleportTab:AddSlider({
+    Name = "Vehicle TP Speed",
+    Min = 100,
+    Max = 5000,
+    Default = 500,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 10,
+    ValueName = "Speed",
+    Callback = function(v)
+        vehicleTeleportSpeed = v
     end
 })
 

@@ -28,6 +28,12 @@ local TeleportTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -260,6 +266,46 @@ MainTab:AddSlider({
         if gravityEnabled then
             workspace.Gravity = v
         end
+    end
+})
+
+local spinBotEnabled = false
+local spinBotSpeed = 10
+local spinBotConnection = nil
+
+MainTab:AddToggle({
+    Name = "SpinBot",
+    Default = false,
+    Callback = function(v)
+        spinBotEnabled = v
+        if spinBotEnabled then
+            spinBotConnection = RunService.Heartbeat:Connect(function()
+                if not spinBotEnabled then return end
+                local char = LocalPlayer.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinBotSpeed), 0)
+            end)
+        else
+            if spinBotConnection then
+                spinBotConnection:Disconnect()
+                spinBotConnection = nil
+            end
+        end
+    end
+})
+
+MainTab:AddSlider({
+    Name = "Spin Speed",
+    Min = 1,
+    Max = 50,
+    Default = 10,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Speed",
+    Callback = function(v)
+        spinBotSpeed = v
     end
 })
 
@@ -880,6 +926,125 @@ TeleportTab:AddButton({
         local part = getPrimaryPart()
         if part then
             part.Velocity = Vector3.zero
+        end
+    end
+})
+
+local hudEnabled = false
+local hudUpdateConnection = nil
+
+local function createHUD()
+    local gui = gethui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "LikegenmHUD"
+    screenGui.Parent = gui
+    
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(0, 400, 0, 60)
+    title.Position = UDim2.new(1, -400, 0, 10)
+    title.Text = "Likegenm"
+    title.TextColor3 = Color3.fromRGB(255, 0, 255)
+    title.TextSize = 44
+    title.Font = Enum.Font.SourceSansBold
+    title.BackgroundTransparency = 1
+    title.TextXAlignment = Enum.TextXAlignment.Right
+    title.RichText = true
+    title.Parent = screenGui
+    
+    local frame = Instance.new("Frame")
+    frame.Name = "FunctionsFrame"
+    frame.Size = UDim2.new(0, 200, 0, 50)
+    frame.Position = UDim2.new(1, -200, 0, 75)
+    frame.BackgroundTransparency = 0.85
+    frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+    
+    local functionsLabel = Instance.new("TextLabel")
+    functionsLabel.Name = "Functions"
+    functionsLabel.Size = UDim2.new(1, 0, 1, 0)
+    functionsLabel.Position = UDim2.new(0, 0, 0, 0)
+    functionsLabel.Text = ""
+    functionsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    functionsLabel.TextSize = 24
+    functionsLabel.Font = Enum.Font.SourceSansSemibold
+    functionsLabel.BackgroundTransparency = 1
+    functionsLabel.TextXAlignment = Enum.TextXAlignment.Right
+    functionsLabel.TextYAlignment = Enum.TextYAlignment.Center
+    functionsLabel.RichText = true
+    functionsLabel.Parent = frame
+    
+    return screenGui, functionsLabel, frame, title
+end
+
+local function updateHUD()
+    local screenGui = gethui():FindFirstChild("LikegenmHUD")
+    
+    if not hudEnabled then
+        if screenGui then
+            screenGui:Destroy()
+        end
+        return
+    end
+    
+    if not screenGui then
+        createHUD()
+        screenGui = gethui():FindFirstChild("LikegenmHUD")
+    end
+    
+    local title = screenGui:FindFirstChild("Title")
+    local titleHue = tick() % 5 / 5
+    local titleColor = Color3.fromHSV(titleHue, 1, 1)
+    title.Text = string.format('<font color="rgb(%d,%d,%d)">Likegenm</font>', titleColor.R * 255, titleColor.G * 255, titleColor.B * 255)
+    
+    local enabledFunctions = {}
+    
+    if flyEnabled then table.insert(enabledFunctions, "Fly|") end
+    if speedHackEnabled then table.insert(enabledFunctions, "SpeedHack|") end
+    if infJumpsEnabled then table.insert(enabledFunctions, "Inf Jumps|") end
+    if noclipEnabled then table.insert(enabledFunctions, "Noclip|") end
+    if jesusEnabled then table.insert(enabledFunctions, "Jesus|") end
+    if gravityEnabled then table.insert(enabledFunctions, "Gravity|") end
+    if spinBotEnabled then table.insert(enabledFunctions, "SpinBot|") end
+    if vehicleFlyEnabled then table.insert(enabledFunctions, "Vehicle Fly|") end
+    if vehicleTurboEnabled then table.insert(enabledFunctions, "Vehicle Turbo|") end
+    if probesESPEnabled then table.insert(enabledFunctions, "Probes ESP|") end
+    
+    local frame = screenGui:FindFirstChild("FunctionsFrame")
+    local functionsLabel = frame:FindFirstChild("Functions")
+    
+    if #enabledFunctions > 0 then
+        local rainbowColors = {}
+        for i, name in ipairs(enabledFunctions) do
+            local hue = (tick() * 0.5 + i * 0.15) % 5 / 5
+            local color = Color3.fromHSV(hue, 1, 1)
+            table.insert(rainbowColors, string.format('<font color="rgb(%d,%d,%d)">%s</font>', color.R * 255, color.G * 255, color.B * 255, name))
+        end
+        functionsLabel.Text = table.concat(rainbowColors, " | ")
+    else
+        functionsLabel.Text = ""
+    end
+    
+    frame.Size = UDim2.new(0, #enabledFunctions * 150, 0, 30)
+    frame.Position = UDim2.new(1, -frame.Size.X.Offset, 0, 75)
+end
+
+SettingsTab:AddParagraph("HUD Settings", "")
+
+SettingsTab:AddToggle({
+    Name = "HUD",
+    Default = false,
+    Callback = function(v)
+        hudEnabled = v
+        updateHUD()
+        if v then
+            hudUpdateConnection = RunService.RenderStepped:Connect(updateHUD)
+        else
+            if hudUpdateConnection then
+                hudUpdateConnection:Disconnect()
+                hudUpdateConnection = nil
+            end
         end
     end
 })

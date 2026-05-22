@@ -36,6 +36,8 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Lighting = game:GetService("Lighting")
 
+_G.PositionCollector = _G.PositionCollector or nil
+
 local flyEnabled = false
 local flySpeed = 200
 local flyTween = nil
@@ -142,6 +144,122 @@ MainTab:AddSlider({
     ValueName = "Speed",
     Callback = function(v)
         speedHackValue = v
+    end
+})
+
+local infJumpsEnabled = false
+local infJumpsConnection = nil
+
+MainTab:AddToggle({
+    Name = "Inf Jumps",
+    Default = false,
+    Callback = function(v)
+        infJumpsEnabled = v
+        if infJumpsEnabled then
+            infJumpsConnection = UserInputService.JumpRequest:Connect(function()
+                if not infJumpsEnabled then return end
+                local char = LocalPlayer.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
+            end)
+        else
+            if infJumpsConnection then
+                infJumpsConnection:Disconnect()
+                infJumpsConnection = nil
+            end
+        end
+    end
+})
+
+local noclipEnabled = false
+local noclipConnection = nil
+
+MainTab:AddToggle({
+    Name = "Noclip",
+    Default = false,
+    Callback = function(v)
+        noclipEnabled = v
+        if noclipEnabled then
+            noclipConnection = RunService.Stepped:Connect(function()
+                if not noclipEnabled then return end
+                local char = LocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+        end
+    end
+})
+
+local jesusEnabled = false
+
+local function setWaterCollide(state)
+    local waterTable = workspace:FindFirstChild("map_related")
+    if waterTable then
+        waterTable = waterTable:FindFirstChild("water_table")
+        if waterTable then
+            for _, v in ipairs(waterTable:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = state
+                end
+            end
+        end
+    end
+end
+
+MainTab:AddToggle({
+    Name = "Jesus",
+    Default = false,
+    Callback = function(v)
+        jesusEnabled = v
+        if jesusEnabled then
+            setWaterCollide(true)
+        else
+            setWaterCollide(false)
+        end
+    end
+})
+
+local gravityEnabled = false
+local gravityValue = 196.2
+
+MainTab:AddToggle({
+    Name = "Gravity",
+    Default = false,
+    Callback = function(v)
+        gravityEnabled = v
+        if gravityEnabled then
+            workspace.Gravity = gravityValue
+        else
+            workspace.Gravity = 196.2
+        end
+    end
+})
+
+MainTab:AddSlider({
+    Name = "Gravity Value",
+    Min = 10,
+    Max = 196.2,
+    Default = 196.2,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Gravity",
+    Callback = function(v)
+        gravityValue = v
+        if gravityEnabled then
+            workspace.Gravity = v
+        end
     end
 })
 
@@ -316,6 +434,42 @@ local function teleportToProbe(probeName)
     end
 end
 
+local function collectProbe(probeName)
+    local probesFolder = workspace:FindFirstChild("player_related")
+    if probesFolder then
+        local probesContainer = probesFolder:FindFirstChild("probes")
+        if probesContainer then
+            local probe = probesContainer:FindFirstChild(probeName)
+            if probe then
+                local myChar = LocalPlayer.Character
+                if not myChar then return end
+                local hrp = myChar:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+                
+                local savedPos = hrp.CFrame
+                _G.PositionCollector = savedPos
+                
+                local targetPos = probe:GetPivot().Position
+                hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+                
+                task.wait(0.5)
+                
+                local promptPart = probe:FindFirstChild("PromptPart")
+                if promptPart then
+                    local prompt = promptPart:FindFirstChild("Prompt")
+                    if prompt then
+                        fireproximityprompt(prompt)
+                    end
+                end
+                
+                task.wait(0.5)
+                
+                hrp.CFrame = savedPos
+            end
+        end
+    end
+end
+
 local probesDropdown = MainTab:AddDropdown({
     Name = "Probes",
     Default = "",
@@ -329,6 +483,16 @@ MainTab:AddButton({
         local selectedProbe = probesDropdown.Value
         if selectedProbe and selectedProbe ~= "" then
             teleportToProbe(selectedProbe)
+        end
+    end
+})
+
+MainTab:AddButton({
+    Name = "Collect Probe",
+    Callback = function()
+        local selectedProbe = probesDropdown.Value
+        if selectedProbe and selectedProbe ~= "" then
+            collectProbe(selectedProbe)
         end
     end
 })

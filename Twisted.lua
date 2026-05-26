@@ -1,5 +1,3 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Unknown/refs/heads/main/TwistedACBypass.lua"))()
-
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Qanuir/orion-ui/refs/heads/main/source.lua"))()
 
 local Window = OrionLib:MakeWindow({
@@ -30,6 +28,18 @@ local TeleportTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+local VehicleTab = Window:MakeTab({
+    Name = "Vehicle",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local ServerTab = Window:MakeTab({
+    Name = "Server",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -37,6 +47,7 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Lighting = game:GetService("Lighting")
+local TeleportService = game:GetService("TeleportService")
 
 _G.PositionCollector = _G.PositionCollector or nil
 
@@ -419,16 +430,6 @@ MainTab:AddSlider({
     ValueName = "Speed",
     Callback = function(v)
         vehicleTurboSpeed = v
-    end
-})
-
-MainTab:AddParagraph("Spawn Car", "")
-
-MainTab:AddButton({
-    Name = "Spawn Car",
-    Callback = function()
-        local vehicleName = LocalPlayer.player_inv["92454SS"]:GetAttribute("vehicle_name")
-        game.ReplicatedStorage.events.spawn_vehicle:FireServer(vehicleName)
     end
 })
 
@@ -1049,4 +1050,439 @@ TeleportTab:AddButton({
     end
 })
 
+local deployState = false
+local deployTask = nil
+
+local function toggleDeploy(state)
+    if state == deployState then return end
+    deployState = state
+    
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local seat = hum and hum.Sit and hum.SeatPart
+    
+    local carId = tostring(LocalPlayer.UserId)
+    local playerRelated = workspace:FindFirstChild("player_related")
+    local carsFolder = playerRelated and playerRelated:FindFirstChild("cars")
+    local car = carsFolder and carsFolder:FindFirstChild(carId)
+    
+    if not (car and seat and seat:IsDescendantOf(car) and car:FindFirstChild("chassis")) then
+        if deployState then
+            OrionLib:MakeNotification({
+                Name = "Deploy",
+                Content = "You must be driving your vehicle to deploy!",
+                Time = 3
+            })
+        end
+        return
+    end
+    
+    local chassis = car.chassis
+    local wheels = car:FindFirstChild("wheels")
+    
+    if deployState then
+        if wheels then
+            for _, p in ipairs(wheels:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    p.CanCollide = false
+                end
+            end
+        end
+        
+        if deployTask then pcall(task.cancel, deployTask) end
+        deployTask = task.spawn(function()
+            task.wait(0.5)
+            if deployState and chassis and chassis.Parent then
+                chassis.Anchored = true
+                chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                chassis.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                OrionLib:MakeNotification({
+                    Name = "Deploy",
+                    Content = "Vehicle Deployed!",
+                    Time = 2
+                })
+            end
+        end)
+    else
+        if deployTask then pcall(task.cancel, deployTask) end
+        if chassis and chassis.Parent then
+            chassis.Anchored = false
+            chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            chassis.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+        end
+        if wheels then
+            for _, p in ipairs(wheels:GetDescendants()) do
+                if p:IsA("BasePart") then
+                    p.CanCollide = true
+                end
+            end
+        end
+        OrionLib:MakeNotification({
+            Name = "Deploy",
+            Content = "Vehicle Undeployed!",
+            Time = 2
+        })
+    end
+end
+
+VehicleTab:AddParagraph("Spawn Car", "")
+
+VehicleTab:AddButton({
+    Name = "Spawn Car",
+    Callback = function()
+        local vehicleName = LocalPlayer.player_inv["92454SS"]:GetAttribute("vehicle_name")
+        game.ReplicatedStorage.events.spawn_vehicle:FireServer(vehicleName)
+    end
+})
+
+VehicleTab:AddParagraph("Deploy Vehicle", "")
+
+VehicleTab:AddToggle({
+    Name = "Deploy Vehicle",
+    Default = false,
+    Callback = function(v)
+        toggleDeploy(v)
+    end
+})
+
+local committedCarStats = nil
+local gcWarningShown = false
+
+local function updateCarStats(forceCommit)
+    local executor = (identifyexecutor and identifyexecutor()) or "Unknown"
+    local unsupportedExecutors = {"Solara", "Xeno", "JJSploit"}
+    local isUnsupported = false
+    
+    for _, name in ipairs(unsupportedExecutors) do
+        if executor:find(name) then
+            isUnsupported = true
+            break
+        end
+    end
+
+    if not getgc or isUnsupported then
+        if not gcWarningShown then
+            gcWarningShown = true
+            OrionLib:MakeNotification({
+                Name = "Vehicle Stats",
+                Content = "Vehicle Stats Unsupported (" .. executor .. ")",
+                Time = 5
+            })
+        end
+        return
+    end
+
+    if forceCommit then
+        committedCarStats = {
+            road = Options.RoadSpeedValue,
+            dirt = Options.DirtSpeedValue,
+            grass = Options.GrassSpeedValue,
+            torque = Options.TorqueValue,
+            gears = Options.GearsValue,
+            brakes = Options.BrakesValue,
+            steerSpd = Options.SteerSpdValue,
+        }
+    end
+
+    local stats = committedCarStats
+    if not stats then return end
+
+    for _, v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Vehicle") and type(v.Vehicle) == "table" and rawget(v, "Driving") and type(v.Driving) == "table" then
+            if v.Driving.Speeds then
+                if stats.road then v.Driving.Speeds.Road = stats.road end
+                if stats.dirt then v.Driving.Speeds.Dirt = stats.dirt end
+                if stats.grass then v.Driving.Speeds.Grass = stats.grass end
+            end
+            if stats.torque then v.Driving.Torque = stats.torque end
+            if stats.gears then v.Driving.Gears = stats.gears end
+            if stats.brakes then v.Driving.Brakes = stats.brakes end
+            if stats.steerSpd then v.Driving.Steer_Spd = stats.steerSpd end
+        end
+    end
+end
+
+VehicleTab:AddParagraph("Vehicle Stats", "")
+
+local RoadSpeedValue = 108
+local DirtSpeedValue = 50
+local GrassSpeedValue = 20
+local TorqueValue = 405
+local GearsValue = 3
+local BrakesValue = 1500
+local SteerSpdValue = 0.05
+
+VehicleTab:AddSlider({
+    Name = "Road Speed",
+    Min = 0,
+    Max = 1000,
+    Default = 108,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "mph",
+    Callback = function(v)
+        RoadSpeedValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Dirt Speed",
+    Min = 0,
+    Max = 1000,
+    Default = 50,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "mph",
+    Callback = function(v)
+        DirtSpeedValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Grass Speed",
+    Min = 0,
+    Max = 1000,
+    Default = 20,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "mph",
+    Callback = function(v)
+        GrassSpeedValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Torque",
+    Min = 0,
+    Max = 10000,
+    Default = 405,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "Nm",
+    Callback = function(v)
+        TorqueValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Gears",
+    Min = 1,
+    Max = 10,
+    Default = 3,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "gears",
+    Callback = function(v)
+        GearsValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Brakes",
+    Min = 0,
+    Max = 20000,
+    Default = 1500,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 1,
+    ValueName = "force",
+    Callback = function(v)
+        BrakesValue = v
+    end
+})
+
+VehicleTab:AddSlider({
+    Name = "Steering Speed",
+    Min = 0.01,
+    Max = 0.1,
+    Default = 0.05,
+    Color = Color3.fromRGB(255, 255, 255),
+    Increment = 0.001,
+    ValueName = "sec",
+    Callback = function(v)
+        SteerSpdValue = v
+    end
+})
+
+VehicleTab:AddButton({
+    Name = "Apply Stats",
+    Callback = function()
+        updateCarStats(true)
+    end
+})
+
+VehicleTab:AddParagraph("Vehicle Rotations", "")
+
+local rotationLeftEnabled = false
+local rotationRightEnabled = false
+local rotationBackEnabled = false
+local rotationForwardEnabled = false
+local rotationConnection = nil
+
+local function setCharacterRotation(degrees)
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    local currentPos = root.Position
+    root.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, math.rad(degrees), 0)
+end
+
+VehicleTab:AddToggle({
+    Name = "Rotate Left",
+    Default = false,
+    Callback = function(v)
+        rotationLeftEnabled = v
+    end
+})
+
+VehicleTab:AddToggle({
+    Name = "Rotate Right",
+    Default = false,
+    Callback = function(v)
+        rotationRightEnabled = v
+    end
+})
+
+VehicleTab:AddToggle({
+    Name = "Rotate Back",
+    Default = false,
+    Callback = function(v)
+        rotationBackEnabled = v
+    end
+})
+
+VehicleTab:AddToggle({
+    Name = "Rotate Forward",
+    Default = false,
+    Callback = function(v)
+        rotationForwardEnabled = v
+    end
+})
+
+rotationConnection = RunService.Heartbeat:Connect(function()
+    if rotationLeftEnabled then
+        setCharacterRotation(-90)
+    end
+    if rotationRightEnabled then
+        setCharacterRotation(90)
+    end
+    if rotationBackEnabled then
+        setCharacterRotation(180)
+    end
+    if rotationForwardEnabled then
+        setCharacterRotation(0)
+    end
+end)
+
+local bypassVoidEnabled = false
+local bypassVoidConnection = nil
+local voidFloor = nil
+
+ServerTab:AddParagraph("Server", "")
+
+ServerTab:AddButton({
+    Name = "Rejoin Server",
+    Callback = function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
+    end
+})
+
+ServerTab:AddParagraph("Bypass AC", "")
+
+ServerTab:AddButton({
+    Name = "Bypass AC",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Unknown/refs/heads/main/TwistedACBypass.lua"))()
+    end
+})
+
+ServerTab:AddParagraph("Bypass Void", "")
+
+ServerTab:AddToggle({
+    Name = "Bypass Void",
+    Default = false,
+    Callback = function(v)
+        bypassVoidEnabled = v
+        if v then
+            OrionLib:MakeNotification({
+                Name = "Bypass Void",
+                Content = "Enable Auto Respawn for full protection!",
+                Time = 5
+            })
+            
+            workspace.FallenPartsDestroyHeight = 0/0
+            
+            voidFloor = Instance.new("Part")
+            voidFloor.Name = "VoidFloor"
+            voidFloor.Parent = workspace
+            voidFloor.Size = Vector3.new(2048, 20, 2048)
+            voidFloor.Position = Vector3.new(0, -5000, 0)
+            voidFloor.Anchored = true
+            voidFloor.Color = Color3.new(0, 0, 0)
+            voidFloor.Transparency = 0.7
+            voidFloor.CanCollide = true
+            
+            bypassVoidConnection = RunService.Heartbeat:Connect(function()
+                local char = LocalPlayer.Character
+                local hum = char and char:FindFirstChild("Humanoid")
+                
+                if hum then
+                    if hum.Health <= 0 then
+                        hum.Health = hum.MaxHealth
+                    end
+                end
+                
+                if char and char.PrimaryPart then
+                    local rootPos = char.PrimaryPart.Position
+                    if voidFloor and voidFloor.Parent then
+                        voidFloor.Position = Vector3.new(rootPos.X, -5000, rootPos.Z)
+                    end
+                end
+            end)
+        else
+            if bypassVoidConnection then
+                bypassVoidConnection:Disconnect()
+                bypassVoidConnection = nil
+            end
+            if voidFloor and voidFloor.Parent then
+                voidFloor:Destroy()
+                voidFloor = nil
+            end
+            workspace.FallenPartsDestroyHeight = -500
+        end
+    end
+})
+
+Options = {
+    RoadSpeedValue = RoadSpeedValue,
+    DirtSpeedValue = DirtSpeedValue,
+    GrassSpeedValue = GrassSpeedValue,
+    TorqueValue = TorqueValue,
+    GearsValue = GearsValue,
+    BrakesValue = BrakesValue,
+    SteerSpdValue = SteerSpdValue,
+}
+
+task.spawn(function()
+    while true do
+        Options.RoadSpeedValue = RoadSpeedValue
+        Options.DirtSpeedValue = DirtSpeedValue
+        Options.GrassSpeedValue = GrassSpeedValue
+        Options.TorqueValue = TorqueValue
+        Options.GearsValue = GearsValue
+        Options.BrakesValue = BrakesValue
+        Options.SteerSpdValue = SteerSpdValue
+        updateCarStats(false)
+        task.wait(5)
+    end
+end)
+
 OrionLib:Init()
+
+
+
+
+
+-- посхалко

@@ -34,6 +34,12 @@ local VehicleTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+local AutoFarmTab = Window:MakeTab({
+    Name = "AutoFarm",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
 local ServerTab = Window:MakeTab({
     Name = "Server",
     Icon = "rbxassetid://4483345998",
@@ -48,6 +54,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Lighting = game:GetService("Lighting")
 local TeleportService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 _G.PositionCollector = _G.PositionCollector or nil
 
@@ -115,34 +122,23 @@ MainTab:AddToggle({
     Callback = function(v)
         speedHackEnabled = v
         if speedHackEnabled then
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            
             speedHackConnection = RunService.Heartbeat:Connect(function()
                 if not speedHackEnabled then return end
                 local char = LocalPlayer.Character
                 if not char then return end
                 local hrp = char:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                
                 local lookVector = Camera.CFrame.LookVector
                 local rightVector = Camera.CFrame.RightVector
                 local mv = Vector3.zero
-                
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then mv += Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then mv -= Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then mv -= Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then mv += Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
-                
-                if mv.Magnitude > 0 then
-                    hrp.Velocity = Vector3.new(mv.X * speedHackValue, hrp.Velocity.Y, mv.Z * speedHackValue)
-                end
+                if mv.Magnitude > 0 then hrp.Velocity = Vector3.new(mv.X * speedHackValue, hrp.Velocity.Y, mv.Z * speedHackValue) end
             end)
         else
-            if speedHackConnection then
-                speedHackConnection:Disconnect()
-                speedHackConnection = nil
-            end
+            if speedHackConnection then speedHackConnection:Disconnect() speedHackConnection = nil end
         end
     end
 })
@@ -178,10 +174,7 @@ MainTab:AddToggle({
                 hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
             end)
         else
-            if infJumpsConnection then
-                infJumpsConnection:Disconnect()
-                infJumpsConnection = nil
-            end
+            if infJumpsConnection then infJumpsConnection:Disconnect() infJumpsConnection = nil end
         end
     end
 })
@@ -200,17 +193,12 @@ MainTab:AddToggle({
                 local char = LocalPlayer.Character
                 if char then
                     for _, part in ipairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = false
-                        end
+                        if part:IsA("BasePart") then part.CanCollide = false end
                     end
                 end
             end)
         else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
+            if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         end
     end
 })
@@ -223,9 +211,7 @@ local function setWaterCollide(state)
         waterTable = waterTable:FindFirstChild("water_table")
         if waterTable then
             for _, v in ipairs(waterTable:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = state
-                end
+                if v:IsA("BasePart") then v.CanCollide = state end
             end
         end
     end
@@ -236,11 +222,7 @@ MainTab:AddToggle({
     Default = false,
     Callback = function(v)
         jesusEnabled = v
-        if jesusEnabled then
-            setWaterCollide(true)
-        else
-            setWaterCollide(false)
-        end
+        if jesusEnabled then setWaterCollide(true) else setWaterCollide(false) end
     end
 })
 
@@ -252,11 +234,7 @@ MainTab:AddToggle({
     Default = false,
     Callback = function(v)
         gravityEnabled = v
-        if gravityEnabled then
-            workspace.Gravity = gravityValue
-        else
-            workspace.Gravity = 196.2
-        end
+        if gravityEnabled then workspace.Gravity = gravityValue else workspace.Gravity = 196.2 end
     end
 })
 
@@ -270,9 +248,7 @@ MainTab:AddSlider({
     ValueName = "Gravity",
     Callback = function(v)
         gravityValue = v
-        if gravityEnabled then
-            workspace.Gravity = v
-        end
+        if gravityEnabled then workspace.Gravity = v end
     end
 })
 
@@ -295,10 +271,7 @@ MainTab:AddToggle({
                 hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinBotSpeed), 0)
             end)
         else
-            if spinBotConnection then
-                spinBotConnection:Disconnect()
-                spinBotConnection = nil
-            end
+            if spinBotConnection then spinBotConnection:Disconnect() spinBotConnection = nil end
         end
     end
 })
@@ -328,13 +301,10 @@ MainTab:AddToggle({
         if vehicleFlyEnabled then
             vehicleFlyConnection = RunService.Heartbeat:Connect(function()
                 if not vehicleFlyEnabled then return end
-                
                 local char = LocalPlayer.Character
                 if not char then return end
-                
                 local primaryPart = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
                 if not primaryPart then return end
-                
                 local dir = Vector3.zero
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += Camera.CFrame.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= Camera.CFrame.LookVector end
@@ -342,21 +312,12 @@ MainTab:AddToggle({
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += Camera.CFrame.RightVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0, 1, 0) end
                 if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir += Vector3.new(0, -1, 0) end
-                
-                if dir.Magnitude > 0 then
-                    primaryPart.Velocity = dir.Unit * vehicleFlySpeed
-                end
-                
+                if dir.Magnitude > 0 then primaryPart.Velocity = dir.Unit * vehicleFlySpeed end
                 local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
-                if cameraLook.Magnitude > 0 then
-                    primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
-                end
+                if cameraLook.Magnitude > 0 then primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit) end
             end)
         else
-            if vehicleFlyConnection then
-                vehicleFlyConnection:Disconnect()
-                vehicleFlyConnection = nil
-            end
+            if vehicleFlyConnection then vehicleFlyConnection:Disconnect() vehicleFlyConnection = nil end
         end
     end
 })
@@ -386,36 +347,23 @@ MainTab:AddToggle({
         if vehicleTurboEnabled then
             vehicleTurboConnection = RunService.Heartbeat:Connect(function()
                 if not vehicleTurboEnabled then return end
-                
                 local char = LocalPlayer.Character
                 if not char then return end
-                
                 local primaryPart = char.PrimaryPart or char:FindFirstChild("HumanoidRootPart")
                 if not primaryPart then return end
-                
                 local lookVector = Camera.CFrame.LookVector
                 local rightVector = Camera.CFrame.RightVector
                 local mv = Vector3.zero
-                
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then mv += Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then mv -= Vector3.new(lookVector.X, 0, lookVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.A) then mv -= Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
                 if UserInputService:IsKeyDown(Enum.KeyCode.D) then mv += Vector3.new(rightVector.X, 0, rightVector.Z).Unit end
-                
-                if mv.Magnitude > 0 then
-                    primaryPart.Velocity = Vector3.new(mv.X * vehicleTurboSpeed, 0, mv.Z * vehicleTurboSpeed)
-                end
-                
+                if mv.Magnitude > 0 then primaryPart.Velocity = Vector3.new(mv.X * vehicleTurboSpeed, 0, mv.Z * vehicleTurboSpeed) end
                 local cameraLook = Vector3.new(Camera.CFrame.LookVector.X, 0, Camera.CFrame.LookVector.Z)
-                if cameraLook.Magnitude > 0 then
-                    primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit)
-                end
+                if cameraLook.Magnitude > 0 then primaryPart.CFrame = CFrame.new(primaryPart.Position, primaryPart.Position + cameraLook.Unit) end
             end)
         else
-            if vehicleTurboConnection then
-                vehicleTurboConnection:Disconnect()
-                vehicleTurboConnection = nil
-            end
+            if vehicleTurboConnection then vehicleTurboConnection:Disconnect() vehicleTurboConnection = nil end
         end
     end
 })
@@ -433,12 +381,33 @@ MainTab:AddSlider({
     end
 })
 
+MainTab:AddParagraph("Buy Items", "")
+
+local buyItems = {"Soda", "Small Gas Canister", "Big Gas Canister", "Chips", "Flashlight", "Beans"}
+
+local buyItemDropdown = MainTab:AddDropdown({
+    Name = "Select Item",
+    Default = "Flashlight",
+    Options = buyItems,
+    Callback = function(v) end
+})
+
+MainTab:AddButton({
+    Name = "Buy Item",
+    Callback = function()
+        local selectedItem = buyItemDropdown.Value
+        if selectedItem and selectedItem ~= "" then
+            ReplicatedStorage.events.buy_store_item:FireServer("Gas Station", selectedItem)
+        end
+    end
+})
+
 MainTab:AddParagraph("Respawn", "")
 
 MainTab:AddButton({
     Name = "Respawn",
     Callback = function()
-        game.ReplicatedStorage.events.plr_respawn:FireServer()
+        ReplicatedStorage.events.plr_respawn:FireServer()
     end
 })
 
@@ -456,16 +425,11 @@ MainTab:AddToggle({
                 local char = LocalPlayer.Character
                 if char then
                     local hum = char:FindFirstChild("Humanoid")
-                    if hum and hum.Health <= 0 then
-                        game.ReplicatedStorage.events.plr_respawn:FireServer()
-                    end
+                    if hum and hum.Health <= 0 then ReplicatedStorage.events.plr_respawn:FireServer() end
                 end
             end)
         else
-            if autoRespawnConnection then
-                autoRespawnConnection:Disconnect()
-                autoRespawnConnection = nil
-            end
+            if autoRespawnConnection then autoRespawnConnection:Disconnect() autoRespawnConnection = nil end
         end
     end
 })
@@ -478,9 +442,7 @@ local function getProbes()
         if probesContainer then
             local userId = LocalPlayer.UserId
             for _, probe in ipairs(probesContainer:GetChildren()) do
-                if probe.Name == tostring(userId) then
-                    table.insert(probes, probe.Name)
-                end
+                if probe.Name == tostring(userId) then table.insert(probes, probe.Name) end
             end
         end
     end
@@ -495,9 +457,7 @@ local function getProbeObjects()
         if probesContainer then
             local userId = LocalPlayer.UserId
             for _, probe in ipairs(probesContainer:GetChildren()) do
-                if probe.Name == tostring(userId) then
-                    table.insert(probes, probe)
-                end
+                if probe.Name == tostring(userId) then table.insert(probes, probe) end
             end
         end
     end
@@ -514,10 +474,7 @@ local function teleportToProbe(probeName)
                 local myChar = LocalPlayer.Character
                 if myChar then
                     local hrp = myChar:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        local targetPos = probe:GetPivot().Position
-                        hrp.CFrame = CFrame.new(targetPos)
-                    end
+                    if hrp then hrp.CFrame = CFrame.new(probe:GetPivot().Position) end
                 end
             end
         end
@@ -535,25 +492,16 @@ local function collectProbe(probeName)
                 if not myChar then return end
                 local hrp = myChar:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                
                 local savedPos = hrp.CFrame
                 _G.PositionCollector = savedPos
-                
-                local targetPos = probe:GetPivot().Position
-                hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
-                
+                hrp.CFrame = CFrame.new(probe:GetPivot().Position + Vector3.new(0, 5, 0))
                 task.wait(0.5)
-                
                 local promptPart = probe:FindFirstChild("PromptPart")
                 if promptPart then
                     local prompt = promptPart:FindFirstChild("Prompt")
-                    if prompt then
-                        fireproximityprompt(prompt)
-                    end
+                    if prompt then fireproximityprompt(prompt) end
                 end
-                
                 task.wait(0.5)
-                
                 hrp.CFrame = savedPos
             end
         end
@@ -571,9 +519,7 @@ MainTab:AddButton({
     Name = "Teleport to Probe",
     Callback = function()
         local selectedProbe = probesDropdown.Value
-        if selectedProbe and selectedProbe ~= "" then
-            teleportToProbe(selectedProbe)
-        end
+        if selectedProbe and selectedProbe ~= "" then teleportToProbe(selectedProbe) end
     end
 })
 
@@ -581,17 +527,13 @@ MainTab:AddButton({
     Name = "Collect Probe",
     Callback = function()
         local selectedProbe = probesDropdown.Value
-        if selectedProbe and selectedProbe ~= "" then
-            collectProbe(selectedProbe)
-        end
+        if selectedProbe and selectedProbe ~= "" then collectProbe(selectedProbe) end
     end
 })
 
 MainTab:AddButton({
     Name = "Refresh Probes",
-    Callback = function()
-        probesDropdown:Refresh(getProbes(), true)
-    end
+    Callback = function() probesDropdown:Refresh(getProbes(), true) end
 })
 
 VisualTab:AddToggle({
@@ -604,20 +546,16 @@ VisualTab:AddToggle({
             Lighting.Brightness = 3
             Lighting.ClockTime = 14
             Lighting.FogEnd = 999999
-            Lighting.FogColor = Color3.fromRGB(255, 255, 255)
             Lighting.GlobalShadows = false
             Lighting.Outlines = false
-            Lighting.ExposureCompensation = 1
         else
             Lighting.Ambient = Color3.fromRGB(0, 0, 0)
             Lighting.OutdoorAmbient = Color3.fromRGB(105, 105, 105)
             Lighting.Brightness = 1
             Lighting.ClockTime = 14
             Lighting.FogEnd = 100000
-            Lighting.FogColor = Color3.fromRGB(192, 192, 192)
             Lighting.GlobalShadows = true
             Lighting.Outlines = true
-            Lighting.ExposureCompensation = 0
         end
     end
 })
@@ -630,9 +568,7 @@ VisualTab:AddSlider({
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 1,
     ValueName = "FOV",
-    Callback = function(v)
-        Camera.FieldOfView = v
-    end
+    Callback = function(v) Camera.FieldOfView = v end
 })
 
 local velocityNotifyEnabled = false
@@ -641,9 +577,7 @@ local lastNotify = 0
 VisualTab:AddToggle({
     Name = "Player Velocity",
     Default = false,
-    Callback = function(v)
-        velocityNotifyEnabled = v
-    end
+    Callback = function(v) velocityNotifyEnabled = v end
 })
 
 task.spawn(function()
@@ -656,14 +590,9 @@ task.spawn(function()
                     local vel = hrp.Velocity
                     local speed = math.floor(vel.Magnitude)
                     local vertSpeed = math.floor(vel.Y)
-                    
                     if tick() - lastNotify > 1 then
                         lastNotify = tick()
-                        OrionLib:MakeNotification({
-                            Name = "Velocity",
-                            Content = "Speed: " .. speed .. " | Vertical: " .. vertSpeed,
-                            Time = 2
-                        })
+                        OrionLib:MakeNotification({Name = "Velocity", Content = "Speed: " .. speed .. " | Vertical: " .. vertSpeed, Time = 2})
                     end
                 end
             end
@@ -678,7 +607,6 @@ local probesESPConnection = nil
 
 local function createProbeESP(probe)
     local highlight = Instance.new("Highlight")
-    highlight.Name = "ProbeESP"
     highlight.FillColor = Color3.fromRGB(255, 255, 0)
     highlight.FillTransparency = 0.5
     highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
@@ -687,7 +615,6 @@ local function createProbeESP(probe)
     highlight.Parent = probe
     
     local billboard = Instance.new("BillboardGui")
-    billboard.Name = "ProbeNameTag"
     billboard.Size = UDim2.new(4, 0, 1, 0)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
@@ -710,12 +637,7 @@ local function createProbeESP(probe)
     tracerLine.Transparency = 0.7
     tracerLine.Visible = true
     
-    table.insert(probesESPObjects, {
-        Probe = probe,
-        Highlight = highlight,
-        Billboard = billboard,
-        TracerLine = tracerLine
-    })
+    table.insert(probesESPObjects, {Probe = probe, Highlight = highlight, Billboard = billboard, TracerLine = tracerLine})
 end
 
 local function removeProbeESP(data)
@@ -725,9 +647,7 @@ local function removeProbeESP(data)
 end
 
 local function clearAllProbesESP()
-    for _, data in ipairs(probesESPObjects) do
-        removeProbeESP(data)
-    end
+    for _, data in ipairs(probesESPObjects) do removeProbeESP(data) end
     probesESPObjects = {}
 end
 
@@ -736,7 +656,6 @@ local function updateProbesESP()
         if data.TracerLine and data.Probe and data.Probe.Parent then
             local probePos = data.Probe:GetPivot().Position
             local screenPos, onScreen = Camera:WorldToViewportPoint(probePos)
-            
             if onScreen then
                 data.TracerLine.Visible = true
                 data.TracerLine.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -752,9 +671,7 @@ local function refreshProbesESP()
     clearAllProbesESP()
     if probesESPEnabled then
         local probes = getProbeObjects()
-        for _, probe in ipairs(probes) do
-            createProbeESP(probe)
-        end
+        for _, probe in ipairs(probes) do createProbeESP(probe) end
     end
 end
 
@@ -767,24 +684,17 @@ VisualTab:AddToggle({
         probesESPEnabled = v
         if v then
             refreshProbesESP()
-            probesESPConnection = RunService.RenderStepped:Connect(function()
-                updateProbesESP()
-            end)
+            probesESPConnection = RunService.RenderStepped:Connect(function() updateProbesESP() end)
         else
             clearAllProbesESP()
-            if probesESPConnection then
-                probesESPConnection:Disconnect()
-                probesESPConnection = nil
-            end
+            if probesESPConnection then probesESPConnection:Disconnect() probesESPConnection = nil end
         end
     end
 })
 
 VisualTab:AddButton({
     Name = "Refresh Probes ESP",
-    Callback = function()
-        refreshProbesESP()
-    end
+    Callback = function() refreshProbesESP() end
 })
 
 local stormWarningEnabled = false
@@ -798,9 +708,7 @@ local function getStormCount()
         if stormsContainer then
             local count = 0
             for _, storm in ipairs(stormsContainer:GetChildren()) do
-                if storm:IsA("Model") or storm:IsA("BasePart") then
-                    count = count + 1
-                end
+                if storm:IsA("Model") or storm:IsA("BasePart") then count = count + 1 end
             end
             return count
         end
@@ -818,17 +726,10 @@ local function checkNewStorms()
                 local children = stormsContainer:GetChildren()
                 local newestStorm = nil
                 for i = #children, 1, -1 do
-                    if children[i]:IsA("Model") or children[i]:IsA("BasePart") then
-                        newestStorm = children[i]
-                        break
-                    end
+                    if children[i]:IsA("Model") or children[i]:IsA("BasePart") then newestStorm = children[i] break end
                 end
                 if newestStorm then
-                    OrionLib:MakeNotification({
-                        Name = "Storm Warning",
-                        Content = "New storm detected: " .. newestStorm.Name,
-                        Time = 5
-                    })
+                    OrionLib:MakeNotification({Name = "Storm Warning", Content = "New storm detected: " .. newestStorm.Name, Time = 5})
                 end
             end
         end
@@ -850,10 +751,7 @@ VisualTab:AddToggle({
                 checkNewStorms()
             end)
         else
-            if stormWarningConnection then
-                stormWarningConnection:Disconnect()
-                stormWarningConnection = nil
-            end
+            if stormWarningConnection then stormWarningConnection:Disconnect() stormWarningConnection = nil end
         end
     end
 })
@@ -867,9 +765,7 @@ end
 local function getPlayerNames()
     local names = {}
     for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            table.insert(names, p.Name)
-        end
+        if p ~= LocalPlayer then table.insert(names, p.Name) end
     end
     return names
 end
@@ -880,33 +776,19 @@ local vehicleTeleportActive = false
 local vehicleTeleportTarget = nil
 
 local function startVehicleTeleport(targetPos)
-    if vehicleTeleportConnection then
-        vehicleTeleportConnection:Disconnect()
-    end
-    
+    if vehicleTeleportConnection then vehicleTeleportConnection:Disconnect() end
     local part = getPrimaryPart()
     if not part then return end
-    
     vehicleTeleportActive = true
     vehicleTeleportTarget = targetPos
-    
     part.Velocity = Vector3.new(0, 10000, 0)
-    
     task.wait(0.3)
-    
     vehicleTeleportConnection = RunService.Heartbeat:Connect(function()
-        if not vehicleTeleportActive then
-            vehicleTeleportConnection:Disconnect()
-            vehicleTeleportConnection = nil
-            return
-        end
-        
+        if not vehicleTeleportActive then vehicleTeleportConnection:Disconnect() vehicleTeleportConnection = nil return end
         local currentPart = getPrimaryPart()
         if not currentPart then return end
-        
         local direction = (vehicleTeleportTarget - currentPart.Position)
         local distance = direction.Magnitude
-        
         if distance < 10 then
             currentPart.Velocity = Vector3.zero
             vehicleTeleportActive = false
@@ -914,10 +796,7 @@ local function startVehicleTeleport(targetPos)
             vehicleTeleportConnection = nil
         else
             local lookDir = Vector3.new(direction.X, 0, direction.Z)
-            if lookDir.Magnitude > 0 then
-                currentPart.CFrame = CFrame.new(currentPart.Position, currentPart.Position + lookDir.Unit)
-            end
-            
+            if lookDir.Magnitude > 0 then currentPart.CFrame = CFrame.new(currentPart.Position, currentPart.Position + lookDir.Unit) end
             currentPart.Velocity = direction.Unit * vehicleTeleportSpeed
         end
     end)
@@ -933,9 +812,7 @@ local cities = {
 }
 
 local cityNames = {}
-for name, _ in pairs(cities) do
-    table.insert(cityNames, name)
-end
+for name, _ in pairs(cities) do table.insert(cityNames, name) end
 
 TeleportTab:AddParagraph("Player Teleports", "")
 
@@ -956,9 +833,7 @@ TeleportTab:AddButton({
                 local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
                 if targetHrp then
                     local part = getPrimaryPart()
-                    if part then
-                        part.CFrame = targetHrp.CFrame
-                    end
+                    if part then part.CFrame = targetHrp.CFrame end
                 end
             end
         end
@@ -973,9 +848,7 @@ TeleportTab:AddButton({
             local target = Players:FindFirstChild(targetName)
             if target and target.Character then
                 local targetHrp = target.Character:FindFirstChild("HumanoidRootPart")
-                if targetHrp then
-                    startVehicleTeleport(targetHrp.Position)
-                end
+                if targetHrp then startVehicleTeleport(targetHrp.Position) end
             end
         end
     end
@@ -983,9 +856,7 @@ TeleportTab:AddButton({
 
 TeleportTab:AddButton({
     Name = "Refresh Players",
-    Callback = function()
-        teleportPlayerDropdown:Refresh(getPlayerNames(), true)
-    end
+    Callback = function() teleportPlayerDropdown:Refresh(getPlayerNames(), true) end
 })
 
 TeleportTab:AddParagraph("Cities Teleports", "")
@@ -1003,9 +874,7 @@ TeleportTab:AddButton({
         local cityName = citiesDropdown.Value
         if cityName and cityName ~= "" and cities[cityName] then
             local part = getPrimaryPart()
-            if part then
-                part.CFrame = CFrame.new(cities[cityName])
-            end
+            if part then part.CFrame = CFrame.new(cities[cityName]) end
         end
     end
 })
@@ -1014,9 +883,7 @@ TeleportTab:AddButton({
     Name = "Vehicle TP to City",
     Callback = function()
         local cityName = citiesDropdown.Value
-        if cityName and cityName ~= "" and cities[cityName] then
-            startVehicleTeleport(cities[cityName])
-        end
+        if cityName and cityName ~= "" and cities[cityName] then startVehicleTeleport(cities[cityName]) end
     end
 })
 
@@ -1030,23 +897,16 @@ TeleportTab:AddSlider({
     Color = Color3.fromRGB(255, 255, 255),
     Increment = 10,
     ValueName = "Speed",
-    Callback = function(v)
-        vehicleTeleportSpeed = v
-    end
+    Callback = function(v) vehicleTeleportSpeed = v end
 })
 
 TeleportTab:AddButton({
     Name = "Stop Vehicle Teleport",
     Callback = function()
         vehicleTeleportActive = false
-        if vehicleTeleportConnection then
-            vehicleTeleportConnection:Disconnect()
-            vehicleTeleportConnection = nil
-        end
+        if vehicleTeleportConnection then vehicleTeleportConnection:Disconnect() vehicleTeleportConnection = nil end
         local part = getPrimaryPart()
-        if part then
-            part.Velocity = Vector3.zero
-        end
+        if part then part.Velocity = Vector3.zero end
     end
 })
 
@@ -1056,72 +916,40 @@ local deployTask = nil
 local function toggleDeploy(state)
     if state == deployState then return end
     deployState = state
-    
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChildOfClass("Humanoid")
     local seat = hum and hum.Sit and hum.SeatPart
-    
     local carId = tostring(LocalPlayer.UserId)
     local playerRelated = workspace:FindFirstChild("player_related")
     local carsFolder = playerRelated and playerRelated:FindFirstChild("cars")
     local car = carsFolder and carsFolder:FindFirstChild(carId)
-    
     if not (car and seat and seat:IsDescendantOf(car) and car:FindFirstChild("chassis")) then
-        if deployState then
-            OrionLib:MakeNotification({
-                Name = "Deploy",
-                Content = "You must be driving your vehicle to deploy!",
-                Time = 3
-            })
-        end
+        if deployState then OrionLib:MakeNotification({Name = "Deploy", Content = "You must be driving your vehicle!", Time = 3}) end
         return
     end
-    
     local chassis = car.chassis
     local wheels = car:FindFirstChild("wheels")
-    
     if deployState then
-        if wheels then
-            for _, p in ipairs(wheels:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    p.CanCollide = false
-                end
-            end
-        end
-        
+        if wheels then for _, p in ipairs(wheels:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end
         if deployTask then pcall(task.cancel, deployTask) end
         deployTask = task.spawn(function()
             task.wait(0.5)
             if deployState and chassis and chassis.Parent then
                 chassis.Anchored = true
-                chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                chassis.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                OrionLib:MakeNotification({
-                    Name = "Deploy",
-                    Content = "Vehicle Deployed!",
-                    Time = 2
-                })
+                chassis.AssemblyLinearVelocity = Vector3.new(0,0,0)
+                chassis.AssemblyAngularVelocity = Vector3.new(0,0,0)
+                OrionLib:MakeNotification({Name = "Deploy", Content = "Vehicle Deployed!", Time = 2})
             end
         end)
     else
         if deployTask then pcall(task.cancel, deployTask) end
         if chassis and chassis.Parent then
             chassis.Anchored = false
-            chassis.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            chassis.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            chassis.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            chassis.AssemblyAngularVelocity = Vector3.new(0,0,0)
         end
-        if wheels then
-            for _, p in ipairs(wheels:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    p.CanCollide = true
-                end
-            end
-        end
-        OrionLib:MakeNotification({
-            Name = "Deploy",
-            Content = "Vehicle Undeployed!",
-            Time = 2
-        })
+        if wheels then for _, p in ipairs(wheels:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end end
+        OrionLib:MakeNotification({Name = "Deploy", Content = "Vehicle Undeployed!", Time = 2})
     end
 end
 
@@ -1131,7 +959,7 @@ VehicleTab:AddButton({
     Name = "Spawn Car",
     Callback = function()
         local vehicleName = LocalPlayer.player_inv["92454SS"]:GetAttribute("vehicle_name")
-        game.ReplicatedStorage.events.spawn_vehicle:FireServer(vehicleName)
+        ReplicatedStorage.events.spawn_vehicle:FireServer(vehicleName)
     end
 })
 
@@ -1140,9 +968,7 @@ VehicleTab:AddParagraph("Deploy Vehicle", "")
 VehicleTab:AddToggle({
     Name = "Deploy Vehicle",
     Default = false,
-    Callback = function(v)
-        toggleDeploy(v)
-    end
+    Callback = function(v) toggleDeploy(v) end
 })
 
 local committedCarStats = nil
@@ -1152,41 +978,22 @@ local function updateCarStats(forceCommit)
     local executor = (identifyexecutor and identifyexecutor()) or "Unknown"
     local unsupportedExecutors = {"Solara", "Xeno", "JJSploit"}
     local isUnsupported = false
-    
-    for _, name in ipairs(unsupportedExecutors) do
-        if executor:find(name) then
-            isUnsupported = true
-            break
-        end
-    end
-
+    for _, name in ipairs(unsupportedExecutors) do if executor:find(name) then isUnsupported = true break end end
     if not getgc or isUnsupported then
         if not gcWarningShown then
             gcWarningShown = true
-            OrionLib:MakeNotification({
-                Name = "Vehicle Stats",
-                Content = "Vehicle Stats Unsupported (" .. executor .. ")",
-                Time = 5
-            })
+            OrionLib:MakeNotification({Name = "Vehicle Stats", Content = "Vehicle Stats Unsupported (" .. executor .. ")", Time = 5})
         end
         return
     end
-
     if forceCommit then
         committedCarStats = {
-            road = Options.RoadSpeedValue,
-            dirt = Options.DirtSpeedValue,
-            grass = Options.GrassSpeedValue,
-            torque = Options.TorqueValue,
-            gears = Options.GearsValue,
-            brakes = Options.BrakesValue,
-            steerSpd = Options.SteerSpdValue,
+            road = Options.RoadSpeedValue, dirt = Options.DirtSpeedValue, grass = Options.GrassSpeedValue,
+            torque = Options.TorqueValue, gears = Options.GearsValue, brakes = Options.BrakesValue, steerSpd = Options.SteerSpdValue,
         }
     end
-
     local stats = committedCarStats
     if not stats then return end
-
     for _, v in pairs(getgc(true)) do
         if type(v) == "table" and rawget(v, "Vehicle") and type(v.Vehicle) == "table" and rawget(v, "Driving") and type(v.Driving) == "table" then
             if v.Driving.Speeds then
@@ -1212,103 +1019,15 @@ local GearsValue = 3
 local BrakesValue = 1500
 local SteerSpdValue = 0.05
 
-VehicleTab:AddSlider({
-    Name = "Road Speed",
-    Min = 0,
-    Max = 1000,
-    Default = 108,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "mph",
-    Callback = function(v)
-        RoadSpeedValue = v
-    end
-})
+VehicleTab:AddSlider({Name = "Road Speed", Min = 0, Max = 1000, Default = 108, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "mph", Callback = function(v) RoadSpeedValue = v end})
+VehicleTab:AddSlider({Name = "Dirt Speed", Min = 0, Max = 1000, Default = 50, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "mph", Callback = function(v) DirtSpeedValue = v end})
+VehicleTab:AddSlider({Name = "Grass Speed", Min = 0, Max = 1000, Default = 20, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "mph", Callback = function(v) GrassSpeedValue = v end})
+VehicleTab:AddSlider({Name = "Torque", Min = 0, Max = 10000, Default = 405, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "Nm", Callback = function(v) TorqueValue = v end})
+VehicleTab:AddSlider({Name = "Gears", Min = 1, Max = 10, Default = 3, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "gears", Callback = function(v) GearsValue = v end})
+VehicleTab:AddSlider({Name = "Brakes", Min = 0, Max = 20000, Default = 1500, Color = Color3.fromRGB(255, 255, 255), Increment = 1, ValueName = "force", Callback = function(v) BrakesValue = v end})
+VehicleTab:AddSlider({Name = "Steering Speed", Min = 0.01, Max = 0.1, Default = 0.05, Color = Color3.fromRGB(255, 255, 255), Increment = 0.001, ValueName = "sec", Callback = function(v) SteerSpdValue = v end})
 
-VehicleTab:AddSlider({
-    Name = "Dirt Speed",
-    Min = 0,
-    Max = 1000,
-    Default = 50,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "mph",
-    Callback = function(v)
-        DirtSpeedValue = v
-    end
-})
-
-VehicleTab:AddSlider({
-    Name = "Grass Speed",
-    Min = 0,
-    Max = 1000,
-    Default = 20,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "mph",
-    Callback = function(v)
-        GrassSpeedValue = v
-    end
-})
-
-VehicleTab:AddSlider({
-    Name = "Torque",
-    Min = 0,
-    Max = 10000,
-    Default = 405,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "Nm",
-    Callback = function(v)
-        TorqueValue = v
-    end
-})
-
-VehicleTab:AddSlider({
-    Name = "Gears",
-    Min = 1,
-    Max = 10,
-    Default = 3,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "gears",
-    Callback = function(v)
-        GearsValue = v
-    end
-})
-
-VehicleTab:AddSlider({
-    Name = "Brakes",
-    Min = 0,
-    Max = 20000,
-    Default = 1500,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 1,
-    ValueName = "force",
-    Callback = function(v)
-        BrakesValue = v
-    end
-})
-
-VehicleTab:AddSlider({
-    Name = "Steering Speed",
-    Min = 0.01,
-    Max = 0.1,
-    Default = 0.05,
-    Color = Color3.fromRGB(255, 255, 255),
-    Increment = 0.001,
-    ValueName = "sec",
-    Callback = function(v)
-        SteerSpdValue = v
-    end
-})
-
-VehicleTab:AddButton({
-    Name = "Apply Stats",
-    Callback = function()
-        updateCarStats(true)
-    end
-})
+VehicleTab:AddButton({Name = "Apply Stats", Callback = function() updateCarStats(true) end})
 
 VehicleTab:AddParagraph("Vehicle Rotations", "")
 
@@ -1321,84 +1040,184 @@ local rotationConnection = nil
 local function setCharacterRotation(degrees)
     local character = LocalPlayer.Character
     if not character then return end
-    
     local root = character:FindFirstChild("HumanoidRootPart")
     if not root then return end
-    
-    local currentPos = root.Position
-    root.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, math.rad(degrees), 0)
+    root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(degrees), 0)
 end
 
-VehicleTab:AddToggle({
-    Name = "Rotate Left",
-    Default = false,
-    Callback = function(v)
-        rotationLeftEnabled = v
-    end
-})
-
-VehicleTab:AddToggle({
-    Name = "Rotate Right",
-    Default = false,
-    Callback = function(v)
-        rotationRightEnabled = v
-    end
-})
-
-VehicleTab:AddToggle({
-    Name = "Rotate Back",
-    Default = false,
-    Callback = function(v)
-        rotationBackEnabled = v
-    end
-})
-
-VehicleTab:AddToggle({
-    Name = "Rotate Forward",
-    Default = false,
-    Callback = function(v)
-        rotationForwardEnabled = v
-    end
-})
+VehicleTab:AddToggle({Name = "Rotate Left", Default = false, Callback = function(v) rotationLeftEnabled = v end})
+VehicleTab:AddToggle({Name = "Rotate Right", Default = false, Callback = function(v) rotationRightEnabled = v end})
+VehicleTab:AddToggle({Name = "Rotate Back", Default = false, Callback = function(v) rotationBackEnabled = v end})
+VehicleTab:AddToggle({Name = "Rotate Forward", Default = false, Callback = function(v) rotationForwardEnabled = v end})
 
 rotationConnection = RunService.Heartbeat:Connect(function()
-    if rotationLeftEnabled then
-        setCharacterRotation(-90)
-    end
-    if rotationRightEnabled then
-        setCharacterRotation(90)
-    end
-    if rotationBackEnabled then
-        setCharacterRotation(180)
-    end
-    if rotationForwardEnabled then
-        setCharacterRotation(0)
-    end
+    if rotationLeftEnabled then setCharacterRotation(-90) end
+    if rotationRightEnabled then setCharacterRotation(90) end
+    if rotationBackEnabled then setCharacterRotation(180) end
+    if rotationForwardEnabled then setCharacterRotation(0) end
 end)
 
-local bypassVoidEnabled = false
-local bypassVoidConnection = nil
-local voidFloor = nil
+local orbitHeight = -200
+local orbitSpeed = 0.002
+local clickInterval = 5
+local orbiting = false
+local orbitConnection = nil
+local orbitAngle = 0
+local currentOrbitRadius = 50
+local lastSizeCheck = 0
+local bestTornado = nil
+local clickTask = nil
+
+local function getOrbitDistance(tornado)
+    local size = (tornado.Size.X + tornado.Size.Z) / 2
+    if size < 500 then return 100
+    elseif size < 1000 then return 300
+    elseif size < 1500 then return 500
+    else return 700 end
+end
+
+local function equipCamera()
+    local char = LocalPlayer.Character
+    if not char then return false end
+    if char:FindFirstChild("Handheld Camera") then return true end
+    local camera = LocalPlayer.Backpack:FindFirstChild("Handheld Camera")
+    if camera then camera.Parent = char; task.wait(0.3); return true end
+    return false
+end
+
+local function setupCamera()
+    equipCamera()
+end
+
+local function takePhoto()
+    if not bestTornado then return end
+    Camera.CFrame = CFrame.new(Camera.CFrame.Position, bestTornado.Position)
+    task.wait(0.1)
+    ReplicatedStorage.events.CameraCapture:FireServer({DoF = 0, Zoom = 0, Saturation = 1, Contrast = 1})
+end
+
+local function startAutoClick()
+    if clickTask then task.cancel(clickTask) end
+    clickTask = task.spawn(function()
+        while orbiting do
+            setupCamera()
+            task.wait(0.3)
+            takePhoto()
+            task.wait(clickInterval)
+        end
+    end)
+end
+
+local function stopAutoClick()
+    if clickTask then task.cancel(clickTask); clickTask = nil end
+end
+
+local function findBiggestTornado()
+    local storms = workspace:FindFirstChild("storm_related")
+    if not storms then return nil end
+    local stormsFolder = storms:FindFirstChild("storms")
+    if not stormsFolder then return nil end
+    local biggest, biggestSize = nil, 0
+    for _, storm in ipairs(stormsFolder:GetChildren()) do
+        local rotation = storm:FindFirstChild("rotation")
+        if rotation then
+            for _, part in ipairs(rotation:GetDescendants()) do
+                if part.Name == "tornado_scan" and part:IsA("BasePart") then
+                    local size = (part.Size.X + part.Size.Z) / 2
+                    if size > biggestSize then biggestSize = size; biggest = part end
+                end
+            end
+        end
+    end
+    return biggest
+end
+
+local function stopOrbit()
+    orbiting = false
+    if orbitConnection then orbitConnection:Disconnect(); orbitConnection = nil end
+    stopAutoClick()
+    workspace.Gravity = 196.2
+end
+
+local function startOrbit()
+    setupCamera()
+    bestTornado = findBiggestTornado()
+    if not bestTornado then return false end
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    currentOrbitRadius = (bestTornado.Size.X + bestTornado.Size.Z) / 2 + getOrbitDistance(bestTornado)
+    local startPos = bestTornado.Position + Vector3.new(currentOrbitRadius, orbitHeight, 0)
+    hrp.CFrame = CFrame.new(startPos, bestTornado.Position)
+    orbiting = true
+    orbitAngle = 0
+    workspace.Gravity = 0
+    lastSizeCheck = tick()
+    startAutoClick()
+    orbitConnection = RunService.Heartbeat:Connect(function()
+        if not orbiting then return end
+        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum and hum.Health <= 0 then
+            ReplicatedStorage.events.plr_respawn:FireServer()
+            task.wait(0.5)
+            return
+        end
+        if tick() - lastSizeCheck > 1 then
+            lastSizeCheck = tick()
+            local newBest = findBiggestTornado()
+            if newBest then
+                local newSize = (newBest.Size.X + newBest.Size.Z) / 2
+                local oldSize = bestTornado and ((bestTornado.Size.X + bestTornado.Size.Z) / 2) or 0
+                if newSize > oldSize then
+                    bestTornado = newBest
+                    currentOrbitRadius = (bestTornado.Size.X + bestTornado.Size.Z) / 2 + getOrbitDistance(bestTornado)
+                end
+            end
+        end
+        if not bestTornado or not bestTornado.Parent then
+            bestTornado = findBiggestTornado()
+            if not bestTornado then return end
+            currentOrbitRadius = (bestTornado.Size.X + bestTornado.Size.Z) / 2 + getOrbitDistance(bestTornado)
+        end
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        orbitAngle = orbitAngle + orbitSpeed
+        local pos = bestTornado.Position + Vector3.new(math.cos(orbitAngle) * currentOrbitRadius, orbitHeight, math.sin(orbitAngle) * currentOrbitRadius)
+        hrp.CFrame = CFrame.new(pos, bestTornado.Position)
+        Camera.CameraType = Enum.CameraType.Custom
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, bestTornado.Position)
+    end)
+    return true
+end
+
+AutoFarmTab:AddParagraph("Camera AutoFarm", "")
+
+AutoFarmTab:AddToggle({
+    Name = "Camera AutoFarm",
+    Default = false,
+    Callback = function(v)
+        if v then startOrbit() else stopOrbit() end
+    end
+})
 
 ServerTab:AddParagraph("Server", "")
 
 ServerTab:AddButton({
     Name = "Rejoin Server",
-    Callback = function()
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId)
-    end
+    Callback = function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId) end
 })
 
 ServerTab:AddParagraph("Bypass AC", "")
 
 ServerTab:AddButton({
     Name = "Bypass AC",
-    Callback = function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Unknown/refs/heads/main/TwistedACBypass.lua"))()
-    end
+    Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Unknown/refs/heads/main/TwistedACBypass.lua"))() end
 })
 
 ServerTab:AddParagraph("Bypass Void", "")
+
+local bypassVoidEnabled = false
+local bypassVoidConnection = nil
+local voidFloor = nil
 
 ServerTab:AddToggle({
     Name = "Bypass Void",
@@ -1406,83 +1225,44 @@ ServerTab:AddToggle({
     Callback = function(v)
         bypassVoidEnabled = v
         if v then
-            OrionLib:MakeNotification({
-                Name = "Bypass Void",
-                Content = "Enable Auto Respawn for full protection!",
-                Time = 5
-            })
-            
+            OrionLib:MakeNotification({Name = "Bypass Void", Content = "Enable Auto Respawn for full protection!", Time = 5})
             workspace.FallenPartsDestroyHeight = 0/0
-            
             voidFloor = Instance.new("Part")
             voidFloor.Name = "VoidFloor"
             voidFloor.Parent = workspace
             voidFloor.Size = Vector3.new(2048, 20, 2048)
             voidFloor.Position = Vector3.new(0, -5000, 0)
             voidFloor.Anchored = true
-            voidFloor.Color = Color3.new(0, 0, 0)
             voidFloor.Transparency = 0.7
             voidFloor.CanCollide = true
-            
             bypassVoidConnection = RunService.Heartbeat:Connect(function()
                 local char = LocalPlayer.Character
                 local hum = char and char:FindFirstChild("Humanoid")
-                
-                if hum then
-                    if hum.Health <= 0 then
-                        hum.Health = hum.MaxHealth
-                    end
-                end
-                
-                if char and char.PrimaryPart then
-                    local rootPos = char.PrimaryPart.Position
-                    if voidFloor and voidFloor.Parent then
-                        voidFloor.Position = Vector3.new(rootPos.X, -5000, rootPos.Z)
-                    end
+                if hum and hum.Health <= 0 then hum.Health = hum.MaxHealth end
+                if char and char.PrimaryPart and voidFloor and voidFloor.Parent then
+                    voidFloor.Position = Vector3.new(char.PrimaryPart.Position.X, -5000, char.PrimaryPart.Position.Z)
                 end
             end)
         else
-            if bypassVoidConnection then
-                bypassVoidConnection:Disconnect()
-                bypassVoidConnection = nil
-            end
-            if voidFloor and voidFloor.Parent then
-                voidFloor:Destroy()
-                voidFloor = nil
-            end
+            if bypassVoidConnection then bypassVoidConnection:Disconnect() bypassVoidConnection = nil end
+            if voidFloor and voidFloor.Parent then voidFloor:Destroy() voidFloor = nil end
             workspace.FallenPartsDestroyHeight = -500
         end
     end
 })
 
 Options = {
-    RoadSpeedValue = RoadSpeedValue,
-    DirtSpeedValue = DirtSpeedValue,
-    GrassSpeedValue = GrassSpeedValue,
-    TorqueValue = TorqueValue,
-    GearsValue = GearsValue,
-    BrakesValue = BrakesValue,
-    SteerSpdValue = SteerSpdValue,
+    RoadSpeedValue = RoadSpeedValue, DirtSpeedValue = DirtSpeedValue, GrassSpeedValue = GrassSpeedValue,
+    TorqueValue = TorqueValue, GearsValue = GearsValue, BrakesValue = BrakesValue, SteerSpdValue = SteerSpdValue,
 }
 
 task.spawn(function()
     while true do
-        Options.RoadSpeedValue = RoadSpeedValue
-        Options.DirtSpeedValue = DirtSpeedValue
-        Options.GrassSpeedValue = GrassSpeedValue
-        Options.TorqueValue = TorqueValue
-        Options.GearsValue = GearsValue
-        Options.BrakesValue = BrakesValue
-        Options.SteerSpdValue = SteerSpdValue
+        Options.RoadSpeedValue = RoadSpeedValue; Options.DirtSpeedValue = DirtSpeedValue; Options.GrassSpeedValue = GrassSpeedValue
+        Options.TorqueValue = TorqueValue; Options.GearsValue = GearsValue; Options.BrakesValue = BrakesValue; Options.SteerSpdValue = SteerSpdValue
         updateCarStats(false)
         task.wait(5)
     end
 end)
 
 OrionLib:Init()
-
-
-
-
-
--- посхалко

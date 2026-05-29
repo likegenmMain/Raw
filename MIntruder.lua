@@ -32,12 +32,6 @@ local GameTab = Window:MakeTab({
     PremiumOnly = false
 })
 
-local UITab = Window:MakeTab({
-    Name = "UI Settings",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -1011,7 +1005,7 @@ GameTab:AddButton({
 })
 
 GameTab:AddButton({
-    Name = "Ent FF (NoClip)",
+    Name = "Godmode",
     Callback = function()
         pcall(function()
             local intruder = Workspace:FindFirstChild("Intruder")
@@ -1032,38 +1026,5 @@ GameTab:AddButton({
     end
 })
 
-local FrameTimer = tick()
-local FrameCounter = 0
-local FPS = 60
-
-local WatermarkConnection = RunService.RenderStepped:Connect(function()
-    FrameCounter = FrameCounter + 1
-    if (tick() - FrameTimer) >= 1 then
-        FPS = FrameCounter
-        FrameTimer = tick()
-        FrameCounter = 0
-    end
-end)
-
-UITab:AddButton({
-    Name = "Unload Script",
-    Callback = function()
-        if ambientConnection then ambientConnection:Disconnect() end
-        if ambientRainbowConnection then ambientRainbowConnection:Disconnect() end
-        if fullBrightConnection then fullBrightConnection:Disconnect() end
-        if intruderUpdateConnection then intruderUpdateConnection:Disconnect() end
-        if intruderRainbowConnection then intruderRainbowConnection:Disconnect() end
-        if generatorUpdateConnection then generatorUpdateConnection:Disconnect() end
-        if generatorRainbowConnection then generatorRainbowConnection:Disconnect() end
-        WatermarkConnection:Disconnect()
-        ResetAmbient()
-        ResetLighting()
-        if intruderChamsHighlight then intruderChamsHighlight:Destroy() end
-        if intruderBillboard then intruderBillboard:Destroy() end
-        if intruderTracer then intruderTracer:Destroy() end
-        ClearGeneratorESP()
-        OrionLib:Destroy()
-    end
-})
-
 OrionLib:Init()
+

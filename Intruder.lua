@@ -80,7 +80,7 @@ if mall then
 end
 
 if mine then
-           loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/1/refs/heads/main/MineIntruder.lua"))()
+           loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Raw/refs/heads/main/MIntruder.lua"))()
 end
 
 if MH then

@@ -979,7 +979,7 @@ local function updateCarStats(forceCommit)
     local unsupportedExecutors = {"Solara", "Xeno", "JJSploit"}
     local isUnsupported = false
     for _, name in ipairs(unsupportedExecutors) do if executor:find(name) then isUnsupported = true break end end
-    if not ggc or isUnsupported then
+    if not getgc or isUnsupported then
         if not gcWarningShown then
             gcWarningShown = true
             OrionLib:MakeNotification({Name = "Vehicle Stats", Content = "Vehicle Stats Unsupported (" .. executor .. ")", Time = 5})
@@ -994,7 +994,7 @@ local function updateCarStats(forceCommit)
     end
     local stats = committedCarStats
     if not stats then return end
-    for _, v in pairs(ggc(true)) do
+    for _, v in pairs(getgc(true)) do
         if type(v) == "table" and rawget(v, "Vehicle") and type(v.Vehicle) == "table" and rawget(v, "Driving") and type(v.Driving) == "table" then
             if v.Driving.Speeds then
                 if stats.road then v.Driving.Speeds.Road = stats.road end

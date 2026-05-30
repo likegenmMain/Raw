@@ -27,18 +27,14 @@ local TeleportTab = Window:MakeTab({
     PremiumOnly = false
 })
 
-local UITab = Window:MakeTab({
-    Name = "UI Settings",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 PT:AddParagraph("SpeedHack", "")
 
@@ -173,12 +169,13 @@ PT:AddToggle({
 
 GameplayTab:AddParagraph("Interact Click", "")
 
-GameplayTab:AddToggle({
+GameplayTab:AddButton({
     Name = "Interact Click",
-    Default = false,
-    Callback = function(v)
-        if v then
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/Scripts/refs/heads/main/InteractClickIntruderHome.lua"))()
+    Callback = function()
+        for _, i in ipairs(Workspace.Map:GetDescendants()) do
+            if i:IsA("ProximityPrompt") then
+                i.HoldDuration = 0
+            end
         end
     end
 })
@@ -298,39 +295,60 @@ GameplayTab:AddSlider({
     end
 })
 
-GameplayTab:AddParagraph("Anti Features", "")
+GameplayTab:AddParagraph("Game Functions", "")
 
-local antiAnxietyEnabled = false
-local antiAwarenessEnabled = false
-
-local function DestroyAntiAnxiety()
-    if workspace.Events:FindFirstChild("Anxiety") then workspace.Events.Anxiety:Destroy() end
-    if workspace.Events:FindFirstChild("AnxietyAmount") then workspace.Events.AnxietyAmount:Destroy() end
-    if LocalPlayer.PlayerGui:FindFirstChild("Anxiety") then LocalPlayer.PlayerGui.Anxiety:Destroy() end
+local function BreakEnt()
+    pcall(function()
+        ReplicatedStorage.changeValue:FireServer(Workspace.Values.intruderPos, 0/0)
+    end)
 end
 
-local function DestroyAntiAwareness()
-    if workspace.Events:FindFirstChild("AwarenessValue") then workspace.Events.AwarenessValue:Destroy() end
-    if LocalPlayer.PlayerGui:FindFirstChild("IntruderAwareness") then LocalPlayer.PlayerGui.IntruderAwareness:Destroy() end
-    if workspace.Events:FindFirstChild("IntruderAwareness") then workspace.Events.IntruderAwareness:Destroy() end
+local function BreakAnx()
+    pcall(function()
+        Workspace.Events.AnxietyAmount.Changed:Connect(function()
+            ReplicatedStorage.changeValue:FireServer(Workspace.Events.AnxietyAmount, 0)
+        end)
+        ReplicatedStorage.changeValue:FireServer(Workspace.Events.Anxiety, -696969696969)
+        Workspace.Events.Anxiety.Changed:Connect(function()
+            ReplicatedStorage.changeValue:FireServer(Workspace.Events.Anxiety, 0)
+            ReplicatedStorage.changeValue:FireServer(Workspace.Events.Anxiety, -696969696969)
+        end)
+    end)
 end
 
-GameplayTab:AddToggle({
-    Name = "Anti Anxiety",
-    Default = false,
-    Callback = function(v)
-        antiAnxietyEnabled = v
-        if v then DestroyAntiAnxiety() end
-    end
+local function BreakAware()
+    pcall(function()
+        Workspace.Events.IntruderAwareness.Changed:Connect(function()
+            ReplicatedStorage.changeValue:FireServer(Workspace.Events.IntruderAwareness, 0)
+        end)
+    end)
+end
+
+local function MakeN()
+    pcall(function()
+        ReplicatedStorage.changeValue:FireServer(Workspace.Values.isEasyMode, false)
+        ReplicatedStorage.changeValue:FireServer(Workspace.Values.isNightmareMode, true)
+    end)
+end
+
+GameplayTab:AddButton({
+    Name = "Break Ent",
+    Callback = BreakEnt
 })
 
-GameplayTab:AddToggle({
-    Name = "Anti Awareness",
-    Default = false,
-    Callback = function(v)
-        antiAwarenessEnabled = v
-        if v then DestroyAntiAwareness() end
-    end
+GameplayTab:AddButton({
+    Name = "Break Anx",
+    Callback = BreakAnx
+})
+
+GameplayTab:AddButton({
+    Name = "Break Aware",
+    Callback = BreakAware
+})
+
+GameplayTab:AddButton({
+    Name = "Make Nightmare",
+    Callback = MakeN
 })
 
 GameplayTab:AddParagraph("Intruder", "")
@@ -339,6 +357,47 @@ GameplayTab:AddButton({
     Name = "Intruder Pos",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/Scripts/refs/heads/main/HomePosIntruder.lua"))()
+    end
+})
+
+-- ==========================================
+-- AUTOFIXPHONE (ваша логика)
+-- ==========================================
+local autoFixPhoneEnabled = false
+
+local rs = game:GetService("RunService")
+
+local function StartAutoFixPhone()
+    rs.Heartbeat:Connect(function()
+        if not autoFixPhoneEnabled then return end
+        for _, v in ipairs(workspace.Map.Phone:GetDescendants()) do
+            if v.Name == "TelephoneRing" and v:IsA("Sound") and v.Playing then
+                for _, p in ipairs(workspace.Map.Phone:GetDescendants()) do
+                    if p:IsA("ProximityPrompt") then
+                        fireproximityprompt(p)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function StopAutoFixPhone()
+    autoFixPhoneEnabled = false
+end
+
+GameplayTab:AddParagraph("AutoFixPhone", "")
+
+GameplayTab:AddToggle({
+    Name = "AutoFixPhone",
+    Default = false,
+    Callback = function(v)
+        autoFixPhoneEnabled = v
+        if v then
+            StartAutoFixPhone()
+        else
+            StopAutoFixPhone()
+        end
     end
 })
 
@@ -360,25 +419,5 @@ TeleportTab:AddButton({ Name = "Electricity", Callback = function() TeleportTo(V
 TeleportTab:AddButton({ Name = "Phone", Callback = function() TeleportTo(Vector3.new(13.38, 4.14, 1.81)) end })
 TeleportTab:AddButton({ Name = "PC", Callback = function() TeleportTo(Vector3.new(8.45, 4.14, 9.78)) end })
 TeleportTab:AddButton({ Name = "LightSwitcher", Callback = function() TeleportTo(Vector3.new(11.26, 4.14, -8.52)) end })
-
-UITab:AddParagraph("Menu", "")
-
-UITab:AddButton({
-    Name = "Unload",
-    Callback = function()
-        if velocityConnection then velocityConnection:Disconnect() end
-        if flyConnection then flyConnection:Disconnect() end
-        if fullBrightConnection then fullBrightConnection:Disconnect() end
-        if flyTween then flyTween:Cancel() end
-        StopMenuMusic()
-        local Lighting = game:GetService("Lighting")
-        Lighting.Ambient = Color3.new(0.5, 0.5, 0.5)
-        Lighting.Brightness = 1
-        Lighting.GlobalShadows = true
-        Lighting.OutdoorAmbient = Color3.new(0.5, 0.5, 0.5)
-        Lighting.FogStart = 100
-        OrionLib:Destroy()
-    end
-})
 
 OrionLib:Init()

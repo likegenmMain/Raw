@@ -84,7 +84,7 @@ if mine then
 end
 
 if MH then
-           loadstring(game:HttpGet("https://raw.githubusercontent.com/Likegenm/1/refs/heads/main/MHIntruder.lua"))()
+           loadstring(game:HttpGet("https://raw.githubusercontent.com/likegenmMain/Raw/refs/heads/main/MHIntruder.lua"))()
 end
 
 if SL then
